@@ -14,7 +14,7 @@ export const ThemedText: FC<TextProps> = (props) => {
   return (
     <Text
       numberOfLines={numberOfLines}
-      style={[style, {fontFamily: 'Poppins', color}]}>
+      style={[{color}, style, {fontFamily: 'Poppins'}]}>
       {children}
     </Text>
   );

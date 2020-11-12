@@ -1,5 +1,5 @@
 import create from 'zustand';
-import {BaseTheme, LightTheme} from '../Models/theme';
+import {BaseTheme,LightTheme, TaiyakiDarkTheme} from '../Models/theme';
 
 type ThemeType = {
   theme: BaseTheme;
@@ -7,6 +7,6 @@ type ThemeType = {
 };
 
 export const useTheme = create<ThemeType>((_) => ({
-  theme: LightTheme,
+  theme: TaiyakiDarkTheme,
   setTheme: (_) => {},
 }));
