@@ -16,12 +16,15 @@ export function useDetailedHook(
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasError, setError] = useState<string>();
 
+  console.log(database.ids);
   const {
     query: {data: SimklEpisodeData},
     controller,
+    ids,
   } = useSimklRequests<SimklEpisodes[]>(
     'simkl' + id,
     '/anime/episodes/',
+    database?.ids.simkl,
     idMal,
     rawLinks.length > 0,
   );
@@ -44,25 +47,36 @@ export function useDetailedHook(
       SimklEpisodeData.length > 0 &&
       rawLinks.length > 0
     ) {
+      if (timer.current) clearTimeout(timer.current);
       _mixer();
     }
     return () => {
       controller.abort();
     };
   }, [SimklEpisodeData, rawLinks]);
+
   useEffect(() => {
     if (database && database.source) {
-      findTitles();
-      timer.current = setTimeout(
-        () => setError('Waited 12 seconds but did not obtain any results'),
-        12000,
-      );
+      effect();
     }
   }, [database]);
+
+  const effect = () => {
+    findTitles();
+    timer.current = setTimeout(
+      () => setError('Waited 12 seconds but did not obtain any results'),
+      12000,
+    );
+  };
 
   if (!database || !database.link) return null;
 
   const source = new SourceBase(database.source);
+
+  const retry = () => {
+    setError(undefined);
+    if (database && database.source) effect();
+  };
 
   const findTitles = async () => {
     setIsLoading(true);
@@ -75,5 +89,7 @@ export function useDetailedHook(
     isLoading,
     data: fullData,
     error: hasError,
+    retry,
+    ids,
   };
 }

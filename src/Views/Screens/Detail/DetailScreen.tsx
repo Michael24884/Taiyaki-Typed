@@ -36,6 +36,8 @@ import {
   DangoImage,
   Divider,
   TaiyakiHeader,
+  ThemedButton,
+  ThemedCard,
   ThemedSurface,
   ThemedText,
   WatchTile,
@@ -246,6 +248,22 @@ const DetailScreen: FC<Props> = (props) => {
     },
   });
 
+  //Save the simkl id if its missing from the database
+  useEffect(() => {
+    const saveIDS = async () => {
+      if (detailedHook && detailedHook.ids && database && !database.ids.simkl) {
+        await mergeItem(JSON.stringify({ids: detailedHook.ids}));
+        setDatabase((database) => {
+          if (database) {
+            database.ids = {...database.ids, ...detailedHook.ids};
+            return database;
+          }
+        });
+      }
+    };
+    saveIDS();
+  }, [detailedHook]);
+
   if (!data)
     return (
       <ThemedSurface
@@ -379,17 +397,31 @@ const DetailScreen: FC<Props> = (props) => {
         {!database || !database.link ? (
           <BindTitleBlock title={title.romaji} id={id} />
         ) : detailedHook ? (
-          <WatchTile
-            data={detailedHook.data[0]}
-            onPress={() => {}}
-            isFollowing={database?.isFollowing}
-            onFollow={async (following) => {
-              setDatabase((database) => {
-                if (database) return {...database, isFollowing: following};
-              });
-              await mergeItem(JSON.stringify({isFollowing: following}));
-            }}
-          />
+          !detailedHook.error ? (
+            <WatchTile
+              data={detailedHook.data[0]}
+              onPress={() => {}}
+              isFollowing={database?.isFollowing}
+              onFollow={async (following) => {
+                setDatabase((database) => {
+                  if (database) return {...database, isFollowing: following};
+                });
+                await mergeItem(JSON.stringify({isFollowing: following}));
+              }}
+            />
+          ) : (
+            <ThemedCard style={{padding: 8}}>
+              <ThemedText
+                style={{fontWeight: '700', textAlign: 'center', fontSize: 18}}>
+                An error has occured. Reason:
+              </ThemedText>
+              <ThemedText
+                style={{fontWeight: '700', textAlign: 'center', fontSize: 16}}>
+                {detailedHook.error}
+              </ThemedText>
+              <ThemedButton title={'Retry'} onPress={detailedHook.retry} />
+            </ThemedCard>
+          )
         ) : null}
 
         {/* //Genres */}

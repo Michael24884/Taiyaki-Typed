@@ -7,6 +7,7 @@ import Icon from 'react-native-dynamic-vector-icons';
 import {FlatList, TextInput} from 'react-native-gesture-handler';
 import {SourceBase} from '../../Classes/SourceBase';
 import {
+  DetailedDatabaseIDSModel,
   TaiyakiArchiveModel,
   TaiyakiScrapedTitleModel,
 } from '../../Models/taiyaki';
@@ -104,9 +105,16 @@ const SearchBindPage: FC<Props> = (props) => {
         image={item.image}
         title={item.title}
         onPress={async () => {
+          const ids: DetailedDatabaseIDSModel = {
+            anilist: id,
+          };
           await AsyncStorage.mergeItem(
             id.toString(),
-            JSON.stringify({link: item.embedLink, source: currentArchive!}),
+            JSON.stringify({
+              link: item.embedLink,
+              source: currentArchive!,
+              ids,
+            }),
           );
           console.log(item);
           navigation.navigate('Detail', {embedLink: item.embedLink});

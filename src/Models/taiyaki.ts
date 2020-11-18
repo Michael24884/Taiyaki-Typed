@@ -39,13 +39,19 @@ export type WatchingStatus =
 export type DetailedDatabaseModel = {
   title: string;
   coverImage: string;
-  id: number;
   link?: string;
   totalEpisodes: number;
   isFollowing: boolean;
   lastWatching: LastWatchingModel;
   source: TaiyakiArchiveModel;
+  ids: DetailedDatabaseIDSModel;
 };
+
+export type DetailedDatabaseIDSModel = Partial<{
+  anilist: number;
+  simkl?: number;
+  myanimelist: number;
+}>;
 
 export type LastWatchingModel = {
   data: SimklEpisodes;

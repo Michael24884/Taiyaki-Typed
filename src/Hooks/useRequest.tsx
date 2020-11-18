@@ -226,6 +226,7 @@ export function useMalRequests<T>(key: string, path: string) {
 export function useSimklRequests<T>(
   key: string,
   path: string,
+  simklID?: number,
   malID?: string,
   requiresConversion = true,
   enabled: boolean = true,
@@ -237,7 +238,7 @@ export function useSimklRequests<T>(
       'b3392816b2f405397aa0721dc2af589e2ed6f71d333abd6200ae19a56d9bc685',
     'Content-Type': 'application/json',
   };
-  const [animeID, setAnimeID] = useState<number>();
+  const [animeID, setAnimeID] = useState<number | undefined>(simklID);
 
   if (requiresConversion && !animeID && enabled && malID) {
     fetch(baseUrl + '/search/id?mal=' + malID, {headers})
@@ -271,5 +272,6 @@ export function useSimklRequests<T>(
   return {
     query: useQuery<T | SimklEpisodes[]>([key, animeID], fetcher, config),
     controller,
+    ids: {simkl: animeID, myanimelist: Number(malID)},
   };
 }
