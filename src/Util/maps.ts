@@ -1,17 +1,25 @@
+import {ImageRequireSource} from 'react-native';
 import {
   AnilistPopularGraph,
   AnilistRequestTypes,
   AnilistSeasonalGraph,
+  AnilistSeasonsTypes,
+  AnilistSourceTypes,
+  AnilistStatusTypes,
   AnilistTrendingGraph,
 } from '../Models/Anilist';
+import {TrackingServiceTypes, WatchingStatus} from '../Models/taiyaki';
 
 export const MapRequestsToTitle = new Map<
   AnilistRequestTypes,
   {title: string; subTitle: string}
 >([
-  ['Popular', {title: 'Popular Anime', subTitle: 'Popular by the users'}],
-  ['Trending', {title: 'Trending', subTitle: 'Anime on the rise'}],
-  ['Seasonal', {title: 'Seasonal', subTitle: 'Fall 2020'}],
+  [
+    'Popular',
+    {title: 'Popular Anime', subTitle: 'Highest voted anime by the users'},
+  ],
+  ['Trending', {title: 'Now Trending', subTitle: 'Anime on the rise'}],
+  ['Seasonal', {title: 'This Season', subTitle: 'Fall 2020'}],
 ]);
 
 export const MapKeyToPaths = new Map<AnilistRequestTypes, string>([
@@ -35,3 +43,62 @@ export const dynamicMapPaths = (
       return '';
   }
 };
+
+export const MapTrackingServiceToAssets = new Map<
+  TrackingServiceTypes,
+  ImageRequireSource
+>([
+  ['Anilist', require('../assets/images/trackers/anilistlogo.png')],
+  ['MyAnimeList', require('../assets/images/trackers/mallogo.png')],
+  ['SIMKL', require('../assets/images/trackers/simkllogo.png')],
+]);
+
+export const MapTrackingServiceToColors = new Map<TrackingServiceTypes, string>(
+  [
+    ['Anilist', '#00AAFF'],
+    ['MyAnimeList', '#2E51A2'],
+    ['SIMKL', '#000000'],
+  ],
+);
+
+export const MapAnilistStatusToString = new Map<AnilistStatusTypes, string>([
+  ['FINISHED', 'Finished'],
+  ['NOT_YET_RELEASED', 'Not Yet Aired'],
+  ['RELEASING', 'Airing'],
+]);
+
+export const MapAnilistSeasonsToString = new Map<AnilistSeasonsTypes, string>([
+  ['FALL', 'Fall'],
+  ['SUMMER', 'Summer'],
+  ['SPRING', 'Spring'],
+  ['WINTER', 'Winter'],
+]);
+
+export const MapAnilistSourceToString = new Map<AnilistSourceTypes, string>([
+  ['ANIME', 'Anime'],
+  ['DOUJINSHI', 'Doujinshi'],
+  ['LIGHT_NOVEL', 'Light Novel'],
+  ['MANGA', 'Manga'],
+  ['NOVEL', 'Novel'],
+  ['ORIGINAL', 'Original'],
+  ['OTHER', 'Other'],
+  ['VIDEO_GAME', 'Video Game'],
+  ['VISUAL_NOVEL', 'Visual Novel'],
+]);
+
+export const MapWatchingStatusToNative = new Map<
+  string | undefined,
+  WatchingStatus
+>([
+  ['watching', 'Watching'],
+  ['CURRENT', 'Watching'],
+  ['plan_to_watch', 'Planning'],
+  ['PLANNING', 'Planning'],
+  ['completed', 'Completed'],
+  ['COMPLETED', 'Completed'],
+  ['on_hold', 'Paused'],
+  ['PAUSED', 'Paused'],
+  ['dropped', 'Dropped'],
+  ['DROPPED', 'Dropped'],
+  [undefined, 'Add to List'],
+]);

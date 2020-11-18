@@ -1,5 +1,11 @@
 import React, {FC, useEffect, useState} from 'react';
-import {ActivityIndicator, StyleProp, StyleSheet, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  StyleProp,
+  StyleSheet,
+  View,
+} from 'react-native';
 import FastImage, {ImageStyle} from 'react-native-fast-image';
 import Animated, {
   useAnimatedStyle,
@@ -44,7 +50,7 @@ const DangoImage: FC<FastImageProps> = (props) => {
 };
 
 interface AvatarProps {
-  url: string;
+  url?: string;
   size?: number;
 }
 
@@ -58,7 +64,14 @@ export const Avatars: FC<AvatarProps> = (props): JSX.Element => {
         width: size ?? 24,
         overflow: 'hidden',
       }}>
-      <DangoImage url={url} style={{height: '100%', width: '100%'}} />
+      {url ? (
+        <DangoImage url={url} style={{height: '100%', width: '100%'}} />
+      ) : (
+        <Image
+          source={require('../../assets/images/icon_round.png')}
+          style={{height: '100%', width: '100%'}}
+        />
+      )}
     </View>
   );
 };

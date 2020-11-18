@@ -16,8 +16,8 @@ export const LightTheme: BaseTheme = {
   dark: false,
   colors: {
     ...DefaultTheme.colors,
-    primary: 'purple',
-    accent: 'pink',
+    primary: '#5D07B2',
+    accent: '#F570C0',
     backgroundColor: 'white',
     surface: '#f0f0f0',
     text: 'black',
@@ -28,7 +28,7 @@ export const TaiyakiDarkTheme: BaseTheme = {
   colors: {
     ...DarkTheme.colors,
     primary: 'white',
-    accent: 'cyan',
+    accent: '#247ba0',
     backgroundColor: '#242a38',
     card: '#202532',
     surface: '#f0f0f0',

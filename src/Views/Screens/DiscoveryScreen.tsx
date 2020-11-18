@@ -8,11 +8,14 @@ import {
   AnilistSeasonalGraph,
   AnilistTrendingGraph,
 } from '../../Models/Anilist';
+import {useUserProfiles} from '../../Stores';
 import {useTheme} from '../../Stores/theme';
 import {MapKeyToPaths, MapRequestsToTitle} from '../../Util';
 import {BaseRows} from '../Components';
+import {TransitionedProfilesSmall} from '../Components/animated';
 
 const DiscoveryScreen = () => {
+  const userProfiles = useUserProfiles((_) => _.profiles);
   const theme = useTheme((_) => _.theme);
   const [data, setData] = useState<AnilistPagedData[]>([]);
   const {
@@ -55,6 +58,9 @@ const DiscoveryScreen = () => {
 
   return (
     <>
+      {userProfiles.length > 0 ? (
+        <TransitionedProfilesSmall profiles={userProfiles} />
+      ) : null}
       <FlatList
         style={{backgroundColor: theme.colors.backgroundColor}}
         data={data}
