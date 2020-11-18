@@ -55,12 +55,17 @@ export const ThemedButton: FC<{
       <View
         style={[
           {
-            backgroundColor: dark ? accent : primary,
+            backgroundColor: props.color
+              ? props.color
+              : dark
+              ? accent
+              : primary,
             borderRadius: 4,
             alignItems: 'center',
             justifyContent: 'center',
             height: height * 0.06,
             width: width * 0.9,
+            alignSelf: 'center',
             marginVertical: height * 0.01,
           },
           props.style,
@@ -75,7 +80,7 @@ export const ThemedButton: FC<{
             : null,
         ]}>
         {props.title ? (
-          <Text style={[{color: props.color ?? 'white', fontWeight: 'bold'}]}>
+          <Text style={[{color: 'white', fontWeight: 'bold'}]}>
             {props.title.toUpperCase()}
           </Text>
         ) : (

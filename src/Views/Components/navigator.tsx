@@ -8,8 +8,8 @@ import {TrackerPage} from './Settings';
 import GeneralPage from './Settings/general';
 import {StatusBar} from 'react-native';
 import SearchBindPage from './detailedParts';
-import SourcesPage from '../Screens/Settings/SourceListPage';
 import {ArchiveListScreen} from '../Screens/archive_list';
+import Icon from 'react-native-dynamic-vector-icons';
 
 export const Navigator = () => {
   const theme = useTheme((_) => _.theme);
@@ -59,8 +59,34 @@ export const Navigator = () => {
       />
       <NavigationContainer theme={theme}>
         <Tab.Navigator initialRouteName={'Discover'}>
-          <Tab.Screen name={'Discover'} component={HomeStack} />
-          <Tab.Screen name={'Settings'} component={SettingsStack} />
+          <Tab.Screen
+            name={'Discover'}
+            component={HomeStack}
+            options={{
+              tabBarIcon: ({color, size}) => (
+                <Icon
+                  name={'google-earth'}
+                  type={'MaterialCommunityIcons'}
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name={'Settings'}
+            component={SettingsStack}
+            options={{
+              tabBarIcon: ({color, size}) => (
+                <Icon
+                  name={'cog'}
+                  type={'MaterialCommunityIcons'}
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
         </Tab.Navigator>
       </NavigationContainer>
     </>

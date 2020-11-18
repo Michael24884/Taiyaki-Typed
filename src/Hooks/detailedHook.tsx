@@ -16,7 +16,6 @@ export function useDetailedHook(
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasError, setError] = useState<string>();
 
-  console.log(database.ids);
   const {
     query: {data: SimklEpisodeData},
     controller,

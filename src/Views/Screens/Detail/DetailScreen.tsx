@@ -419,7 +419,11 @@ const DetailScreen: FC<Props> = (props) => {
                 style={{fontWeight: '700', textAlign: 'center', fontSize: 16}}>
                 {detailedHook.error}
               </ThemedText>
-              <ThemedButton title={'Retry'} onPress={detailedHook.retry} />
+              <ThemedButton
+                title={'Retry'}
+                onPress={detailedHook.retry}
+                color={'red'}
+              />
             </ThemedCard>
           )
         ) : null}
