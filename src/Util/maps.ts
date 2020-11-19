@@ -102,3 +102,11 @@ export const MapWatchingStatusToNative = new Map<
   ['DROPPED', 'Dropped'],
   [undefined, 'Add to List'],
 ]);
+
+export const MapWatchingStatusToAnilist = new Map<WatchingStatus, string>([
+  ['Watching', 'CURRENT'],
+  ['Planning', 'PLANNING'],
+  ['Paused', 'PAUSED'],
+  ['Dropped', 'DROPPED'],
+  ['Completed', 'COMPLETED'],
+]);
