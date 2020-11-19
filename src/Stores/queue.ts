@@ -1,4 +1,5 @@
 import create from 'zustand';
+import { SimklEpisodes } from '../Models/SIMKL';
 import {MyQueueModel} from '../Models/taiyaki';
 
 export type MyQueueItems = {
@@ -144,4 +145,25 @@ export const useQueueStore = create<QueueEvents>((set, get) => ({
         .map((i) => value[i].length)
         .reduce((prev, c) => prev + c),
     })),
+}));
+
+type UpNextState = {
+  upNext: SimklEpisodes[];
+  addAll: (arg0: SimklEpisodes[]) => void;
+  removeAll: () => void;
+  removeSingle: (arg0: number) => void;
+};
+
+export const useUpNextStore = create<UpNextState>((set, get) => ({
+  upNext: [],
+  addAll: (episodes) => set((state) => ({...state, upNext: episodes})),
+  removeAll: () => set((state) => ({...state, upNext: []})),
+
+  removeSingle: (number) => {
+    const future = number + 1;
+    if (future >= get().upNext[0].episode)
+      return set((state) => ({...state, upNext: []}));
+    const upNext = get().upNext.slice(future);
+    return set((state) => ({...state, upNext}));
+  },
 }));
