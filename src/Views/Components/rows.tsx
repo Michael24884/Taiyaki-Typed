@@ -22,7 +22,14 @@ import {
   Media,
 } from '../../Models/Anilist';
 import {SimklEpisodes} from '../../Models/SIMKL';
-import {TrackingServiceTypes, WatchingStatus} from '../../Models/taiyaki';
+import {
+  DetailedDatabaseIDSModel,
+  DetailedDatabaseModel,
+  MyQueueModel,
+  TrackingServiceTypes,
+  WatchingStatus,
+} from '../../Models/taiyaki';
+import {useQueueStore} from '../../Stores/queue';
 import {useTheme} from '../../Stores/theme';
 import {
   MapTrackingServiceToAssets,
@@ -256,13 +263,32 @@ const _StatusTiles: FC<{data?: StatusInfo; tracker: TrackingServiceTypes}> = (
 export const StatusTiles = memo(_StatusTiles);
 
 const _WatchTile: FC<{
-  data: SimklEpisodes;
+  episode: SimklEpisodes;
+  detail: DetailedDatabaseModel;
   onPress: () => void;
   onFollow: (arg0: boolean) => void;
   isFollowing: boolean;
 }> = (props) => {
   const theme = useTheme((_) => _.theme);
-  if (!props.data)
+  const addToQueue = useQueueStore((_) => _.addToQueue);
+  const queue = useQueueStore((_) => _.myQueue);
+  const queueLength = useQueueStore((_) => _.queueLength);
+
+  const inQueue = (): boolean => {
+    if (queue[detail.title]) {
+      const match = queue[detail.title].find(
+        (i) => i.episode.episode === props.episode.episode,
+      );
+      if (match) return true;
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    if (detail) inQueue();
+  }, [queueLength, queue]);
+
+  if (!props.episode)
     return (
       <View
         style={{
@@ -283,8 +309,9 @@ const _WatchTile: FC<{
       </View>
     );
 
-  const {title, episode, img, description} = props.data;
-  const {onPress, onFollow, isFollowing} = props;
+  const {title, episode, img, description} = props.episode;
+  const {onPress, onFollow, isFollowing, detail} = props;
+
   return (
     <View>
       <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
@@ -298,7 +325,16 @@ const _WatchTile: FC<{
             justifyContent: 'flex-end',
             alignItems: 'flex-end',
           }}>
-          <FlavoredButtons name={'play'} onPress={() => {}} />
+          <FlavoredButtons
+            name={'play'}
+            onPress={() => {
+              const model: MyQueueModel = {
+                detail,
+                episode: props.episode,
+              };
+              addToQueue({key: detail.title, data: model});
+            }}
+          />
           <FlavoredButtons
             name={isFollowing ? 'bell' : 'bell-outline'}
             onPress={() => {
@@ -336,9 +372,11 @@ const _WatchTile: FC<{
               <ThemedText style={{color: theme.colors.accent}}>
                 Episode {episode}
               </ThemedText>
-              <ThemedText style={{fontWeight: '700', color: 'green'}}>
-                In Queue
-              </ThemedText>
+              {inQueue() ? (
+                <ThemedText style={{fontWeight: '700', color: 'green'}}>
+                  In Queue
+                </ThemedText>
+              ) : null}
             </View>
             <ScrollView style={{marginTop: 10}}>
               <ThemedText style={styles.watchTile.desc}>

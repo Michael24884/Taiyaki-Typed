@@ -47,6 +47,11 @@ export type DetailedDatabaseModel = {
   ids: DetailedDatabaseIDSModel;
 };
 
+export type MyQueueModel = {
+  detail: DetailedDatabaseModel;
+  episode: SimklEpisodes;
+};
+
 export type DetailedDatabaseIDSModel = Partial<{
   anilist: number;
   simkl?: number;
