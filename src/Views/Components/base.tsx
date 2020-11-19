@@ -107,7 +107,6 @@ export const ThemedCard: FC<ViewProps> = (props) => {
   return (
     <View
       style={[
-        style,
         {
           backgroundColor,
           borderRadius: 4,
@@ -123,6 +122,7 @@ export const ThemedCard: FC<ViewProps> = (props) => {
             },
           }),
         },
+        style,
       ]}>
       {children}
     </View>
