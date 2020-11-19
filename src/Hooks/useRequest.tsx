@@ -4,6 +4,8 @@ import {LayoutAnimation, Platform, UIManager} from 'react-native';
 import {QueryConfig, useQuery, useInfiniteQuery} from 'react-query';
 import {MyAnimeList} from '../Classes/Trackers';
 import {
+  AnilistCharacterPageGraph,
+  AnilistCharacterPageModel,
   AnilistPagedData,
   AnilistPopularGraph,
   AnilistRequestTypes,
@@ -112,8 +114,8 @@ export function useAnilistRequest<T = AnilistPagedData | Media>(
   };
 }
 export function useInifiniteAnilistRequest<
-  T extends {data: {Page: {pageInfo: PageInfo}}}
->(key: AnilistRequestTypes) {
+  T extends {data: {Page: {pageInfo: PageInfo}}} | AnilistCharacterPageModel
+>(key: AnilistRequestTypes, id?: number) {
   // const {animated} = requestConfig;
   const baseUrl = 'https://graphql.anilist.co';
   // eslint-disable-next-line no-undef
@@ -127,6 +129,8 @@ export function useInifiniteAnilistRequest<
         return AnilistSeasonalGraph(index);
       case 'Trending':
         return AnilistTrendingGraph(index);
+      case 'Character':
+        return AnilistCharacterPageGraph(id!, index);
       default:
         throw 'This property does not exist';
     }
@@ -149,18 +153,35 @@ export function useInifiniteAnilistRequest<
   };
 
   return {
-    query: useInfiniteQuery<T>(key, fetcher, {
-      getFetchMore: (lastGroup) => {
-        if (lastGroup && lastGroup.data.Page.pageInfo.hasNextPage) {
-          console.log(
-            'has next page',
-            lastGroup.data.Page.pageInfo.currentPage + 1,
-          );
-          return lastGroup.data.Page.pageInfo.currentPage + 1;
-        }
-        return null;
+    query: useInfiniteQuery<T>(
+      key === 'Character' ? 'characters' + id! : key,
+      fetcher,
+      {
+        onSuccess: () => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        },
+        getFetchMore: (lastGroup) => {
+          if (!lastGroup) return 1;
+          console.log(lastGroup, 'the group');
+          if (lastGroup.data.Media.hasOwnProperty('characters')) {
+            const dGroup = lastGroup as AnilistCharacterPageModel;
+            if (dGroup.data.Media.characters.pageInfo.hasNextPage)
+              return dGroup.data.Media.characters.pageInfo.currentPage + 1;
+            return null;
+          } else {
+            if (lastGroup && lastGroup.data.Page.pageInfo.hasNextPage) {
+              console.log(
+                'has next page',
+                lastGroup.data.Page.pageInfo.currentPage + 1,
+              );
+              return lastGroup.data.Page.pageInfo.currentPage + 1;
+            }
+          }
+
+          return null;
+        },
       },
-    }),
+    ),
     controller,
   };
 }

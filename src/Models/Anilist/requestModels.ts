@@ -1,5 +1,5 @@
 import {AnilistRequestTypes} from '.';
-import { StatusInfo } from '../../Views/Components';
+import {StatusInfo} from '../../Views/Components';
 
 export type AnilistStatusTypes = 'FINISHED' | 'RELEASING' | 'NOT_YET_RELEASED';
 export type AnilistSeasonsTypes = 'WINTER' | 'FALL' | 'SUMMER' | 'SPRING';
@@ -14,6 +14,7 @@ export type AnilistSourceTypes =
   | 'DOUJINSHI'
   | 'ANIME';
 
+export type AnilistCharacterRoleTypes = 'SUPPORTING' | 'MAIN' | 'BACKGROUND';
 export type AnilistPagedData = {
   data: {
     Page: {
@@ -85,7 +86,7 @@ export type AnilistDates = {
   year?: number;
   day?: number;
   month?: number;
-}
+};
 
 export type AnilistViewerModel = {
   data: {
@@ -93,6 +94,21 @@ export type AnilistViewerModel = {
       name: string;
       id: number;
       avatar: {large: string};
+    };
+  };
+};
+
+export type AnilistCharacterPageEdgeModel = {
+  role: AnilistCharacterRoleTypes;
+  node: AnilistCharacterModel;
+};
+export type AnilistCharacterPageModel = {
+  data: {
+    Media: {
+      characters: {
+        pageInfo: PageInfo;
+        edges: AnilistCharacterPageEdgeModel[];
+      };
     };
   };
 };

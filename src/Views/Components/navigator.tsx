@@ -12,6 +12,7 @@ import {ArchiveListScreen} from '../Screens/archive_list';
 import Icon from 'react-native-dynamic-vector-icons';
 import MyQueueScreen from '../Screens/QueuePage';
 import EpisodesList from '../Screens/Detail/EpisodesList';
+import CharacterListScreen from '../Screens/Detail/ViewMore/CharacterListScreen';
 
 export const Navigator = () => {
   const theme = useTheme((_) => _.theme);
@@ -24,6 +25,11 @@ export const Navigator = () => {
         <Stack.Screen name={'Home'} component={DiscoveryScreen} />
         <Stack.Screen name={'BindPage'} component={SearchBindPage} />
         <Stack.Screen name={'EpisodesList'} component={EpisodesList} />
+        <Stack.Screen
+          name={'Characters'}
+          component={CharacterListScreen}
+          options={{title: 'All Characters'}}
+        />
         <Stack.Screen
           name={'Detail'}
           component={DetailScreen}
