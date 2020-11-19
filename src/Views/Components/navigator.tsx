@@ -10,6 +10,8 @@ import {StatusBar} from 'react-native';
 import SearchBindPage from './detailedParts';
 import {ArchiveListScreen} from '../Screens/archive_list';
 import Icon from 'react-native-dynamic-vector-icons';
+import MyQueueScreen from '../Screens/QueuePage';
+import EpisodesList from '../Screens/Detail/EpisodesList';
 
 export const Navigator = () => {
   const theme = useTheme((_) => _.theme);
@@ -21,12 +23,21 @@ export const Navigator = () => {
       <Stack.Navigator initialRouteName={'Home'}>
         <Stack.Screen name={'Home'} component={DiscoveryScreen} />
         <Stack.Screen name={'BindPage'} component={SearchBindPage} />
+        <Stack.Screen name={'EpisodesList'} component={EpisodesList} />
         <Stack.Screen
           name={'Detail'}
           component={DetailScreen}
           options={{headerShown: false}}
         />
         {/* <Stack.Screen name={'MoreItems'} component={MoreItemsScreen} /> */}
+      </Stack.Navigator>
+    );
+  }
+
+  function QueueStack() {
+    return (
+      <Stack.Navigator>
+        <Stack.Screen name={'My Queue'} component={MyQueueScreen} />
       </Stack.Navigator>
     );
   }
@@ -53,8 +64,8 @@ export const Navigator = () => {
   return (
     <>
       <StatusBar
-        // barStyle={theme.dark ? 'light-content' : 'dark-content'}
-        barStyle={'light-content'}
+        barStyle={theme.dark ? 'light-content' : 'dark-content'}
+        // barStyle={'light-content'}
         backgroundColor={theme.colors.card}
       />
       <NavigationContainer theme={theme}>
@@ -66,6 +77,20 @@ export const Navigator = () => {
               tabBarIcon: ({color, size}) => (
                 <Icon
                   name={'google-earth'}
+                  type={'MaterialCommunityIcons'}
+                  size={size}
+                  color={color}
+                />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name={'Queue'}
+            component={QueueStack}
+            options={{
+              tabBarIcon: ({color, size}) => (
+                <Icon
+                  name={'animation-play'}
                   type={'MaterialCommunityIcons'}
                   size={size}
                   color={color}
