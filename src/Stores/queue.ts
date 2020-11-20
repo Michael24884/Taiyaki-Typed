@@ -1,5 +1,5 @@
 import create from 'zustand';
-import { SimklEpisodes } from '../Models/SIMKL';
+import {SimklEpisodes} from '../Models/SIMKL';
 import {MyQueueModel} from '../Models/taiyaki';
 
 export type MyQueueItems = {

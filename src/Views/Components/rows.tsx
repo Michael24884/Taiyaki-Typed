@@ -29,7 +29,7 @@ import {
   TrackingServiceTypes,
   WatchingStatus,
 } from '../../Models/taiyaki';
-import {useQueueStore} from '../../Stores/queue';
+import {useQueueStore, useUpNextStore} from '../../Stores/queue';
 import {useTheme} from '../../Stores/theme';
 import {
   MapTrackingServiceToAssets,
@@ -268,9 +268,9 @@ const _WatchTile: FC<{
   onPress: () => void;
   onFollow: (arg0: boolean) => void;
   isFollowing: boolean;
+  onPlay: () => void;
 }> = (props) => {
   const theme = useTheme((_) => _.theme);
-  const addToQueue = useQueueStore((_) => _.addToQueue);
   const queue = useQueueStore((_) => _.myQueue);
   const queueLength = useQueueStore((_) => _.queueLength);
 
@@ -310,7 +310,7 @@ const _WatchTile: FC<{
     );
 
   const {title, episode, img, description} = props.episode;
-  const {onPress, onFollow, isFollowing, detail} = props;
+  const {onPress, onFollow, isFollowing, detail, onPlay} = props;
 
   return (
     <View>
@@ -325,16 +325,7 @@ const _WatchTile: FC<{
             justifyContent: 'flex-end',
             alignItems: 'flex-end',
           }}>
-          <FlavoredButtons
-            name={'play'}
-            onPress={() => {
-              const model: MyQueueModel = {
-                detail,
-                episode: props.episode,
-              };
-              addToQueue({key: detail.title, data: model});
-            }}
-          />
+          <FlavoredButtons name={'play'} onPress={onPlay} />
           <FlavoredButtons
             name={isFollowing ? 'bell' : 'bell-outline'}
             onPress={() => {

@@ -8,6 +8,8 @@ import {
   AnilistCharacterPageModel,
   AnilistPagedData,
   AnilistPopularGraph,
+  AnilistRecommendationPageGraph,
+  AnilistRecommendationPageModel,
   AnilistRequestTypes,
   AnilistSeasonalGraph,
   AnilistTrendingGraph,
@@ -114,7 +116,9 @@ export function useAnilistRequest<T = AnilistPagedData | Media>(
   };
 }
 export function useInifiniteAnilistRequest<
-  T extends {data: {Page: {pageInfo: PageInfo}}} | AnilistCharacterPageModel
+  T extends
+    | {data: {Page: {pageInfo: PageInfo}}}
+    | {data: {Media: {[key: string]: {pageInfo: PageInfo}}}}
 >(key: AnilistRequestTypes, id?: number) {
   // const {animated} = requestConfig;
   const baseUrl = 'https://graphql.anilist.co';
@@ -131,13 +135,14 @@ export function useInifiniteAnilistRequest<
         return AnilistTrendingGraph(index);
       case 'Character':
         return AnilistCharacterPageGraph(id!, index);
+      case 'Recommendations':
+        return AnilistRecommendationPageGraph(id!, index);
       default:
         throw 'This property does not exist';
     }
   };
 
   const fetcher = (key: string, page = 0) => {
-    console.log('the pag', page);
     const json = JSON.stringify({query: switcher(page)});
     const headers = {
       'Content-Type': 'application/json',
@@ -152,36 +157,46 @@ export function useInifiniteAnilistRequest<
       .then((data) => data as T);
   };
 
+  const keyGen = (): string => {
+    if (key === 'Character') return 'characters' + id!;
+    if (key === 'Recommendations') return 'recommendations' + id!;
+    return key;
+  };
+
+  const isMedia = () => {
+    if (key === 'Character' || key === 'Recommendations') {
+      return true;
+    }
+    return false;
+  };
+
   return {
-    query: useInfiniteQuery<T>(
-      key === 'Character' ? 'characters' + id! : key,
-      fetcher,
-      {
-        onSuccess: () => {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        },
-        getFetchMore: (lastGroup) => {
-          if (!lastGroup) return 1;
-          console.log(lastGroup, 'the group');
-          if (lastGroup.data.Media.hasOwnProperty('characters')) {
-            const dGroup = lastGroup as AnilistCharacterPageModel;
+    query: useInfiniteQuery<T>(keyGen(), fetcher, {
+      onSuccess: () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      },
+      getFetchMore: (lastGroup) => {
+        if (!lastGroup) return 1;
+        if (isMedia()) {
+          let dGroup;
+          if (key === 'Character') {
+            dGroup = (lastGroup as unknown) as AnilistCharacterPageModel;
             if (dGroup.data.Media.characters.pageInfo.hasNextPage)
               return dGroup.data.Media.characters.pageInfo.currentPage + 1;
-            return null;
           } else {
-            if (lastGroup && lastGroup.data.Page.pageInfo.hasNextPage) {
-              console.log(
-                'has next page',
-                lastGroup.data.Page.pageInfo.currentPage + 1,
-              );
-              return lastGroup.data.Page.pageInfo.currentPage + 1;
-            }
+            dGroup = (lastGroup as unknown) as AnilistRecommendationPageModel;
+            if (dGroup.data.Media.recommendations.pageInfo.hasNextPage)
+              return dGroup.data.Media.recommendations.pageInfo.currentPage + 1;
           }
-
           return null;
-        },
+        } else {
+          if (lastGroup && lastGroup.data.Page.pageInfo.hasNextPage) {
+            return lastGroup.data.Page.pageInfo.currentPage + 1;
+          }
+        }
+        return null;
       },
-    ),
+    }),
     controller,
   };
 }

@@ -1,34 +1,36 @@
 import React, {FC, useEffect} from 'react';
 import {
-  Dimensions,
-  FlatList,
+  ActivityIndicator,
+  View,
   StyleSheet,
   Platform,
-  View,
-  ActivityIndicator,
+  Dimensions,
 } from 'react-native';
+import {FlatList} from 'react-native-gesture-handler';
 import {useInifiniteAnilistRequest} from '../../../../Hooks';
 import {
-  AnilistCharacterPageEdgeModel,
-  AnilistCharacterPageModel,
+  AnilistRecommendationPageEdgeModel,
+  AnilistRecommendationPageModel,
 } from '../../../../Models/Anilist';
 import {ThemedText} from '../../../Components';
-import {CharacterCard} from '../../../Components/list_cards';
+import {RecCards} from '../../../Components/list_cards';
 
 const {height, width} = Dimensions.get('window');
+
 interface Props {
   route: {params: {id: number}};
 }
 
-const CharacterListScreen: FC<Props> = (props) => {
+const RecommendationList: FC<Props> = (props) => {
   const {id} = props.route.params;
-  const _renderItem = ({item}: {item: AnilistCharacterPageEdgeModel}) => {
-    return <CharacterCard character={item} />;
-  };
+
   const {
     query: {data, fetchMore, canFetchMore},
     controller,
-  } = useInifiniteAnilistRequest<AnilistCharacterPageModel>('Character', id);
+  } = useInifiniteAnilistRequest<AnilistRecommendationPageModel>(
+    'Recommendations',
+    id,
+  );
 
   useEffect(() => {
     return () => controller.abort();
@@ -40,21 +42,23 @@ const CharacterListScreen: FC<Props> = (props) => {
         <ActivityIndicator />
       </View>
     );
-  const list: AnilistCharacterPageEdgeModel[] = ([] as AnilistCharacterPageEdgeModel[]).concat.apply(
+
+  const _renderRec = ({item}: {item: AnilistRecommendationPageEdgeModel}) => {
+    return <RecCards items={item} />;
+  };
+  const list: AnilistRecommendationPageEdgeModel[] = ([] as AnilistRecommendationPageEdgeModel[]).concat.apply(
     [],
     data.map((i) => {
-      if (!i) return {} as AnilistCharacterPageEdgeModel;
-      return i?.data.Media.characters.edges ?? [];
+      return i.data.Media.recommendations.edges;
     }),
   );
 
   return (
     <FlatList
       data={list}
-      renderItem={_renderItem}
-      keyExtractor={(item) => item.node.name.full}
-      numColumns={3}
-      onEndReachedThreshold={0.2}
+      renderItem={_renderRec}
+      keyExtractor={(item) => item.node.mediaRecommendation.id.toString()}
+      onEndReachedThreshold={0.25}
       onEndReached={() => fetchMore()}
       ListFooterComponent={
         canFetchMore ? (
@@ -109,4 +113,4 @@ const styles = {
   }),
 };
 
-export default CharacterListScreen;
+export default RecommendationList;

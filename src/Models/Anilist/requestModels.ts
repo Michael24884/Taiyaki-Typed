@@ -62,6 +62,9 @@ export type Media = {
   characters: {
     nodes: AnilistCharacterModel[];
   };
+  recommendations: {
+    edges: AnilistRecommendationPageEdgeModel[];
+  };
   startDate: AnilistDates;
   endDate: AnilistDates;
   mediaListEntry: AnilistMediaListEntry;
@@ -102,6 +105,24 @@ export type AnilistCharacterPageEdgeModel = {
   role: AnilistCharacterRoleTypes;
   node: AnilistCharacterModel;
 };
+
+export type AnilistRecommendationPageEdgeModel = {
+  node: {
+    mediaRecommendation: Media;
+  };
+};
+
+export type AnilistRecommendationPageModel = {
+  data: {
+    Media: {
+      recommendations: {
+        pageInfo: PageInfo;
+        edges: AnilistRecommendationPageEdgeModel[];
+      };
+    };
+  };
+};
+
 export type AnilistCharacterPageModel = {
   data: {
     Media: {

@@ -7,6 +7,6 @@ type ThemeType = {
 };
 
 export const useTheme = create<ThemeType>((_) => ({
-  theme: LightTheme,
+  theme: TaiyakiDarkTheme,
   setTheme: (_) => {},
 }));

@@ -13,6 +13,7 @@ import Icon from 'react-native-dynamic-vector-icons';
 import MyQueueScreen from '../Screens/QueuePage';
 import EpisodesList from '../Screens/Detail/EpisodesList';
 import CharacterListScreen from '../Screens/Detail/ViewMore/CharacterListScreen';
+import RecommendationList from '../Screens/Detail/ViewMore/RecommendationListScreen';
 
 export const Navigator = () => {
   const theme = useTheme((_) => _.theme);
@@ -30,6 +31,7 @@ export const Navigator = () => {
           component={CharacterListScreen}
           options={{title: 'All Characters'}}
         />
+        <Stack.Screen name={'Recommendations'} component={RecommendationList} />
         <Stack.Screen
           name={'Detail'}
           component={DetailScreen}
