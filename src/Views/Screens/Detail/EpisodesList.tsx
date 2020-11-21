@@ -3,7 +3,7 @@ import React, {FC, useEffect} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {FlatList} from 'react-native-gesture-handler';
 import {SimklEpisodes} from '../../../Models/SIMKL';
-import {EpisodeTiles, ListRow} from '../../Components';
+import {EpisodeTiles} from '../../Components/list_cards';
 
 interface Props {
   route: {params: {episodes: SimklEpisodes[]; title: string}};
@@ -18,7 +18,7 @@ const EpisodesList: FC<Props> = (props) => {
   }, []);
 
   const _renderItem = ({item}: {item: SimklEpisodes}) => {
-    return <EpisodeTiles data={item} counterIndex={2} />;
+    return <EpisodeTiles episode={item} counterIndex={2} />;
   };
 
   return (

@@ -14,6 +14,7 @@ import MyQueueScreen from '../Screens/QueuePage';
 import EpisodesList from '../Screens/Detail/EpisodesList';
 import CharacterListScreen from '../Screens/Detail/ViewMore/CharacterListScreen';
 import RecommendationList from '../Screens/Detail/ViewMore/RecommendationListScreen';
+import MoreItemsScreen from '../Screens/MoreItemsScreen';
 
 export const Navigator = () => {
   const theme = useTheme((_) => _.theme);
@@ -26,6 +27,7 @@ export const Navigator = () => {
         <Stack.Screen name={'Home'} component={DiscoveryScreen} />
         <Stack.Screen name={'BindPage'} component={SearchBindPage} />
         <Stack.Screen name={'EpisodesList'} component={EpisodesList} />
+        <Stack.Screen name={'See More'} component={MoreItemsScreen} />
         <Stack.Screen
           name={'Characters'}
           component={CharacterListScreen}

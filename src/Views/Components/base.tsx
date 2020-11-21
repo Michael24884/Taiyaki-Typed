@@ -108,8 +108,7 @@ export const ThemedCard: FC<ViewProps> = (props) => {
     <View
       style={[
         {
-          backgroundColor,
-          borderRadius: 4,
+          backgroundColor: 'transparent',
           marginBottom: height * 0.025,
           marginHorizontal: width * 0.01,
           ...Platform.select({
@@ -122,9 +121,11 @@ export const ThemedCard: FC<ViewProps> = (props) => {
             },
           }),
         },
-        style,
       ]}>
-      {children}
+      <View
+        style={[{overflow: 'hidden', borderRadius: 4, backgroundColor}, style]}>
+        {children}
+      </View>
     </View>
   );
 };

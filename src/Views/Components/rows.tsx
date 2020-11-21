@@ -73,7 +73,8 @@ interface BaseRowProps {
 export const BaseRows: FC<BaseRowProps> = (props) => {
   const theme = useTheme((_) => _.theme.colors);
   const ITEM_HEIGHT = height * 0.25;
-  const {title, subtitle, data} = props;
+  const {title, subtitle, data, type} = props;
+  const navigation = useNavigation();
   const renderItem = ({item}: {item: Media}) => {
     return (
       <BaseCards
@@ -90,7 +91,11 @@ export const BaseRows: FC<BaseRowProps> = (props) => {
           <ThemedText style={styles.row.title}>{title}</ThemedText>
           <ThemedText style={styles.row.subTitle}>{subtitle}</ThemedText>
         </View>
-        <Button title={'See All'} onPress={() => null} color={theme.accent} />
+        <Button
+          title={'See All'}
+          onPress={() => navigation.navigate('See More', {key: type})}
+          color={theme.accent}
+        />
       </View>
       <FlatList
         data={data.data.Page.media}
@@ -429,8 +434,8 @@ export const BindTitleBlock: FC<{
   const navigation = useNavigation();
 
   return (
-    <View style={[styles.tiles.shadowView, {alignSelf: 'center'}]}>
-      <ThemedCard style={{marginVertical: width * 0.01, padding: 8}}>
+    <ThemedCard style={{marginVertical: width * 0.01, padding: 8}}>
+      <View style={{padding: 12}}>
         <ThemedText
           style={{fontWeight: '700', fontSize: 15, textAlign: 'center'}}>
           Bind an anime from a source to Taiyaki to start watching
@@ -440,8 +445,8 @@ export const BindTitleBlock: FC<{
           onPress={() => navigation.navigate('BindPage', {title, id})}
           style={{alignSelf: 'center', marginVertical: height * 0.014}}
         />
-      </ThemedCard>
-    </View>
+      </View>
+    </ThemedCard>
   );
 };
 

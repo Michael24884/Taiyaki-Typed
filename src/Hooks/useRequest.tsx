@@ -190,8 +190,9 @@ export function useInifiniteAnilistRequest<
           }
           return null;
         } else {
-          if (lastGroup && lastGroup.data.Page.pageInfo.hasNextPage) {
-            return lastGroup.data.Page.pageInfo.currentPage + 1;
+          const oGroup = (lastGroup as unknown) as AnilistPagedData;
+          if (oGroup.data.Page.pageInfo.hasNextPage) {
+            return oGroup.data.Page.pageInfo.currentPage + 1;
           }
         }
         return null;

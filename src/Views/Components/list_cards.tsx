@@ -8,11 +8,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import {TouchableOpacity} from 'react-native-gesture-handler';
 import {
   AnilistCharacterPageEdgeModel,
   AnilistRecommendationPageEdgeModel,
   AnilistRecommendationPageModel,
 } from '../../Models/Anilist';
+import {SimklEpisodes} from '../../Models/SIMKL';
 import {useTheme} from '../../Stores';
 import {TaiyakiParsedText, ThemedCard, ThemedText} from './base';
 import DangoImage from './image';
@@ -40,10 +42,6 @@ export const CharacterCard: FC<{character: AnilistCharacterPageEdgeModel}> = (
   );
 };
 
-export const EpisodeTiles = () => {
-  return <ThemedCard style={styles.tiles.view}></ThemedCard>;
-};
-
 export const RecCards: FC<{items: AnilistRecommendationPageEdgeModel}> = (
   props,
 ) => {
@@ -60,7 +58,13 @@ export const RecCards: FC<{items: AnilistRecommendationPageEdgeModel}> = (
   const navigation = useNavigation();
 
   return (
-    <ThemedCard style={{height: expanded ? undefined : height * 0.46}}>
+    <ThemedCard
+      style={{
+        height:
+          expanded || (description?.length ?? 0) < 85
+            ? undefined
+            : height * 0.46,
+      }}>
       <>
         {bannerImage ? (
           <DangoImage url={bannerImage} style={styles.rec.banner} />
@@ -104,21 +108,146 @@ export const RecCards: FC<{items: AnilistRecommendationPageEdgeModel}> = (
             name={'page-next'}
             onPress={() => navigation.push('Detail', {id})}
           />
-          <FlavoredButtons
-            size={40}
-            name={expanded ? 'arrow-up' : 'arrow-down'}
-            onPress={() => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
-              setExpanded((ex) => !ex);
-            }}
-          />
+          {(description?.length ?? 0) > 85 ? (
+            <FlavoredButtons
+              size={40}
+              name={expanded ? 'arrow-up' : 'arrow-down'}
+              onPress={() => {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+                setExpanded((ex) => !ex);
+              }}
+            />
+          ) : null}
         </View>
       </View>
     </ThemedCard>
   );
 };
 
+export const EpisodeTiles: FC<{
+  episode: SimklEpisodes;
+  counterIndex: number;
+}> = (props) => {
+  const {episode, counterIndex} = props;
+  const [hidden, setHidden] = useState<boolean>(counterIndex < episode.episode);
+  const theme = useTheme((_) => _.theme);
+
+  return (
+    <ThemedCard style={styles.tiles.view}>
+      {hidden ? (
+        <TouchableOpacity
+          onLongPress={() => {
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
+            setHidden(false);
+          }}>
+          <View style={{height: height * 0.25}}>
+            <Image
+              source={require('../../assets/images/icon_round.png')}
+              style={styles.rec.image}
+              fadeDuration={1250}
+            />
+            <View
+              style={[
+                styles.tiles.absolute,
+                {backgroundColor: 'rgba(0,0,0,0.56)'},
+              ]}
+            />
+            <View
+              style={[
+                styles.tiles.absolute,
+                {justifyContent: 'center', alignItems: 'center'},
+              ]}>
+              <ThemedText
+                style={[
+                  styles.tiles.episodeNumber,
+                  {color: theme.colors.accent},
+                ]}>
+                Episode {episode.episode}
+              </ThemedText>
+              <ThemedText
+                style={[styles.tiles.episodeNumber, {color: 'white'}]}>
+                Long press to reveal
+              </ThemedText>
+            </View>
+          </View>
+        </TouchableOpacity>
+      ) : (
+        <View>
+          {episode.img ? (
+            <DangoImage url={episode.img} style={styles.tiles.image} />
+          ) : (
+            <Image
+              source={require('../../assets/images/icon_round.png')}
+              style={styles.tiles.image}
+            />
+          )}
+          <View style={styles.tiles.textView}>
+            <ThemedText
+              style={[
+                styles.tiles.episodeNumberReveal,
+                {color: theme.colors.accent},
+              ]}>
+              Episode {episode.episode}
+            </ThemedText>
+            <ThemedText
+              style={[
+                styles.tiles.episodeTitle,
+                {color: theme.colors.primary},
+              ]}>
+              {episode.title}
+            </ThemedText>
+            <ThemedText style={styles.tiles.desc} numberOfLines={4}>
+              {episode.description ??
+                'No description provided for this episode at this time'}
+            </ThemedText>
+          </View>
+        </View>
+      )}
+    </ThemedCard>
+  );
+};
+
 const styles = {
+  tiles: StyleSheet.create({
+    view: {
+      width: width * 0.95,
+      alignSelf: 'center',
+    },
+    absolute: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    image: {
+      height: height * 0.21,
+      width: '100%',
+    },
+    episodeNumber: {
+      fontSize: 16,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    textView: {
+      padding: 8,
+    },
+    episodeNumberReveal: {
+      fontSize: 15,
+      fontWeight: '400',
+    },
+    episodeTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+    },
+    desc: {
+      color: 'grey',
+      fontSize: 14,
+      fontWeight: '400',
+    },
+  }),
   rec: StyleSheet.create({
     view: {},
     textView: {
@@ -162,12 +291,6 @@ const styles = {
     image: {
       height: '100%',
       width: '100%',
-    },
-  }),
-  tiles: StyleSheet.create({
-    view: {
-      width: width * 0.85,
-      alignSelf: 'center',
     },
   }),
   cards: StyleSheet.create({

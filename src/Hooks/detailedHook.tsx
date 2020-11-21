@@ -62,10 +62,10 @@ export function useDetailedHook(
 
   const effect = () => {
     findTitles();
-    timer.current = setTimeout(
-      () => setError('Waited 12 seconds but did not obtain any results'),
-      12000,
-    );
+    timer.current = setTimeout(() => {
+      if (rawLinks.length === 0)
+        setError('Waited 12 seconds but did not obtain any results');
+    }, 12000);
   };
 
   if (!database || !database.link) return null;

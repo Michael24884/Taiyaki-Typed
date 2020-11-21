@@ -1,82 +1,108 @@
-// import React, {FC, useEffect, useState} from 'react';
-// import {ActivityIndicator, FlatList, LogBox, StyleSheet} from 'react-native';
-// import {useInifiniteAnilistRequest} from '../../Hooks';
-// import {
-//   AnilistPagedData,
-//   AnilistRequestTypes,
-//   Media,
-// } from '../../Models/Anilist';
-// import {ListRow, ThemedSurface} from '../Components';
+import {useNavigation} from '@react-navigation/native';
+import React, {FC, useEffect} from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  LogBox,
+  StyleSheet,
+  View,
+} from 'react-native';
+import {useInifiniteAnilistRequest} from '../../Hooks';
+import {
+  AnilistPagedData,
+  AnilistRequestTypes,
+  Media,
+} from '../../Models/Anilist';
+import {ListRow, ThemedSurface, ThemedText} from '../Components';
+const {height} = Dimensions.get('window');
 
-// interface Props {
-//   route: {params: {key: AnilistRequestTypes; path: string}};
-// }
+interface Props {
+  route: {params: {key: AnilistRequestTypes; path: string}};
+}
 
-// LogBox.ignoreLogs(['Encountered two']);
+LogBox.ignoreLogs(['Encountered two']);
 
-// const MoreItemsScreen: FC<Props> = (props) => {
-//   const {key, path} = props.route.params;
-//   const [page, setPageNumber] = useState<number>(0);
-//   const {
-//     query: {data, isLoading, fetchMore},
-//   } = useInifiniteAnilistRequest<{
-//     data: {
-//       Page: {
-//         pageInfo: {currentPage: number; hasNextPage: boolean};
-//         media: Media[];
-//       };
-//     };
-//   }[]>(key);
+const MoreItemsScreen: FC<Props> = (props) => {
+  const {key} = props.route.params;
+  const navigation = useNavigation();
 
-//   const renderItem = ({item}: {item: Media}) => {
-//     return (
-//       <ListRow image={item.coverImage.extraLarge} title={item.title.romaji} />
-//     );
-//   };
+  const {
+    query: {data, fetchMore, canFetchMore},
+    controller,
+  } = useInifiniteAnilistRequest<AnilistPagedData>(key);
 
-//   useEffect(() => {
-//     fetchMore(page);
-//   }, [page]);
+  useEffect(() => {
+    navigation.setOptions({title: key});
+    return () => controller.abort();
+  }, []);
 
-//   if (!data || isLoading)
-//     return (
-//       <ThemedSurface style={styles.empty.view}>
-//         <ActivityIndicator />
-//       </ThemedSurface>
-//     );
+  const renderItem = ({item}: {item: Media}) => {
+    return (
+      <ListRow
+        image={item.coverImage.extraLarge}
+        title={item.title.romaji}
+        onPress={() => navigation.push('Detail', {id: item.id})}
+      />
+    );
+  };
 
-//   console.log(data, 'any data?');
-//   const list: Media[] = ([] as Media[]).concat.apply(
-//     [],
-//     Array.isArray(data)
-//       ? data.map((group) => {
-//           if (!group) return {} as Media;
-//           return group?.data?.Page?.media ?? [];
-//         })
-//       : data.data.Page.media,
-//   );
+  if (!data)
+    return (
+      <ThemedSurface style={styles.empty.view}>
+        <ActivityIndicator />
+      </ThemedSurface>
+    );
 
-//   const onEnd = () => setPageNumber((page) => page + 1);
+  const list = ([] as Media[]).concat.apply(
+    [],
+    Array.isArray(data)
+      ? data.map((i) => i.data.Page.media)
+      : (data as AnilistPagedData).data.Page.media,
+  );
 
-//   return (
-//     <FlatList
-//       data={list}
-//       renderItem={renderItem}
-//       keyExtractor={(item) => item.id.toString()}
-//       onEndReached={onEnd}
-//       onEndReachedThreshold={0.25}
-//     />
-//   );
-// };
+  return (
+    <FlatList
+      data={list.filter((i) => i)}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id.toString()}
+      onEndReached={() => fetchMore()}
+      onEndReachedThreshold={0.25}
+      ListFooterComponent={
+        canFetchMore ? (
+          <View style={styles.cards.footerView}>
+            <ActivityIndicator />
+            <ThemedText style={styles.cards.footerText}>
+              Fetching More...
+            </ThemedText>
+          </View>
+        ) : null
+      }
+    />
+  );
+};
 
-// const styles = {
-//   empty: StyleSheet.create({
-//     view: {
-//       flex: 1,
-//       justifyContent: 'center',
-//       alignItems: 'center',
-//     },
-//   }),
-// };
+const styles = {
+  empty: StyleSheet.create({
+    view: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  }),
+  cards: StyleSheet.create({
+    footerView: {
+      height: height * 0.2,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    footerText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: 'grey',
+      marginTop: 8,
+    },
+  }),
+};
 
-// export default MoreItemsScreen;
+export default MoreItemsScreen;

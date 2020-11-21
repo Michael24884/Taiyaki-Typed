@@ -49,7 +49,9 @@ const RecommendationList: FC<Props> = (props) => {
   const list: AnilistRecommendationPageEdgeModel[] = ([] as AnilistRecommendationPageEdgeModel[]).concat.apply(
     [],
     data.map((i) => {
-      return i.data.Media.recommendations.edges;
+      return i.data.Media.recommendations.edges.filter(
+        (i) => i.node.mediaRecommendation,
+      );
     }),
   );
 
