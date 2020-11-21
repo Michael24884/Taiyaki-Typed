@@ -3,22 +3,23 @@ import React, {FC, useEffect} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {FlatList} from 'react-native-gesture-handler';
 import {SimklEpisodes} from '../../../Models/SIMKL';
+import {DetailedDatabaseModel} from '../../../Models/taiyaki';
 import {EpisodeTiles} from '../../Components/list_cards';
 
 interface Props {
-  route: {params: {episodes: SimklEpisodes[]; title: string}};
+  route: {params: {episodes: SimklEpisodes[]; database: DetailedDatabaseModel}};
 }
 
 const EpisodesList: FC<Props> = (props) => {
-  const {episodes, title} = props.route.params;
+  const {episodes, database} = props.route.params;
   const navigation = useNavigation();
 
   useEffect(() => {
-    navigation.setOptions({title: title});
+    navigation.setOptions({title: database.title});
   }, []);
 
   const _renderItem = ({item}: {item: SimklEpisodes}) => {
-    return <EpisodeTiles episode={item} counterIndex={2} />;
+    return <EpisodeTiles episode={item} detail={database} />;
   };
 
   return (

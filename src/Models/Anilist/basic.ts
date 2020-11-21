@@ -11,7 +11,9 @@ export type AnilistRequestTypes =
   | 'Popular'
   | 'Detail'
   | 'Trending'
-  | 'Seasonal';
+  | 'Seasonal'
+  | 'Character'
+  | 'Recommendations';
 
 export const AnilistPopularGraph = (index?: number): string => `
 query {
@@ -20,7 +22,7 @@ query {
       hasNextPage
       currentPage
     }
-  	media(sort:POPULARITY_DESC, type: ANIME) {
+  	media(sort:POPULARITY_DESC, type: ANIME, isAdult: false) {
       id
       idMal
       isAdult
@@ -43,7 +45,7 @@ query {
       hasNextPage
       currentPage
     }
-  	media(sort:TRENDING_DESC, type: ANIME) {
+  	media(sort:TRENDING_DESC, type: ANIME, isAdult: false) {
       id
       idMal
       isAdult
@@ -67,7 +69,7 @@ query {
       hasNextPage
       currentPage
     }
-  	media(season:FALL, seasonYear:2020, sort:POPULARITY_DESC type:ANIME) {
+  	media(season:FALL, seasonYear:2020, sort:POPULARITY_DESC type:ANIME, isAdult: false) {
       id
       idMal
       isAdult
@@ -133,7 +135,7 @@ query {
         month
         day
       }
-      characters {
+      characters(perPage: 12, sort:ROLE) {
         nodes {
           id
           name {
@@ -142,6 +144,18 @@ query {
           image{large}
         }
       }
+      recommendations(perPage: 12){
+        edges {
+          node{
+            mediaRecommendation{
+              id
+              title{romaji}
+              coverImage{extraLarge}
+            }
+          }
+        }
+      }
+
     }
   }
 `;
@@ -152,6 +166,77 @@ query{
     id
     name
     avatar {large}
+  }
+}
+`;
+
+export const AnilistUpdateMediaGraph = (
+  id: number,
+  score: number,
+  progress: number,
+  startedAt: string,
+  completedAt: string,
+  status: string,
+): string => `
+mutation {
+  SaveMediaListEntry(id:${id}, status: ${status} scoreRaw:${score}, progress:${progress}, startedAt:${startedAt}, completedAt: ${completedAt}) {
+   id
+   progress
+   score
+   startedAt{month, year, day}
+   completedAt{month, year, day}
+   status
+ }
+ }
+`;
+
+export const AnilistCharacterPageGraph = (
+  id: number,
+  page: number = 1,
+): string => `
+query {
+  Media(id:${id}) {
+    characters(page: ${page}, perPage: 15, sort:ROLE){
+      pageInfo {
+        currentPage
+        hasNextPage
+      }
+      edges {
+        role
+        node {
+          name {full}
+          id
+          image {large}
+        }
+      }
+    }
+  }
+}
+`;
+
+export const AnilistRecommendationPageGraph = (
+  id: number,
+  page: number = 1,
+): string => `
+query {
+  Media(id: ${id}) {
+    recommendations(perPage: 15, page: ${page}){
+      pageInfo{
+        currentPage
+        hasNextPage
+      }
+      edges {
+        node{
+          mediaRecommendation{
+            id
+            title{romaji}
+            coverImage{extraLarge}
+            bannerImage
+            description
+          }
+        }
+      }
+    }
   }
 }
 `;

@@ -1,7 +1,9 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, {FC} from 'react';
 import {Dimensions, Image, Platform, StyleSheet, View} from 'react-native';
 import {TouchableOpacity} from 'react-native-gesture-handler';
 import {ThemedSurface} from '.';
+import {MyQueueModel} from '../../Models/taiyaki';
 import {useTheme} from '../../Stores';
 import {ThemedText} from './base';
 import DangoImage from './image';
@@ -36,6 +38,63 @@ export const ListRow: FC<ListRowProps> = (props) => {
           </View>
         </ThemedSurface>
       </View>
+    </TouchableOpacity>
+  );
+};
+
+export const EpisodeSliders: FC<{
+  onPress: () => void;
+  item: MyQueueModel;
+}> = (props) => {
+  const {onPress, item} = props;
+  const theme = useTheme((_) => _.theme);
+  return (
+    <TouchableOpacity onPress={onPress}>
+      <ThemedSurface
+        style={{
+          flexDirection: 'row',
+          paddingRight: 8,
+          marginVertical: 6,
+          height: height * 0.12,
+          marginHorizontal: 8,
+          flex: 1,
+          ...Platform.select({android: {elevation: 3}}),
+          backgroundColor: theme.colors.card,
+        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            flexShrink: 0.8,
+          }}>
+          <Image
+            source={
+              item.episode.img !== null
+                ? {uri: item.episode.img}
+                : require('../../assets/images/icon_round.png')
+            }
+            style={[queueStyle.queueItemImage, {height: '100%', width: '45%'}]}
+          />
+
+          <View
+            style={{
+              flexDirection: 'column',
+              flexShrink: 1,
+              width: '55%',
+              paddingVertical: 6,
+            }}>
+            <ThemedText
+              style={[
+                queueStyle.queueItemNumber,
+                {color: theme.colors.primary},
+              ]}>
+              Episode {item.episode.episode}
+            </ThemedText>
+            <ThemedText style={queueStyle.queueItemTitle}>
+              {item.episode.title ?? '???'}
+            </ThemedText>
+          </View>
+        </View>
+      </ThemedSurface>
     </TouchableOpacity>
   );
 };
@@ -75,3 +134,72 @@ const styles = {
     },
   }),
 };
+
+const queueStyle = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    color: 'gray',
+    fontSize: 14,
+  },
+  upNextView: {
+    marginHorizontal: 10,
+  },
+  upNextImage: {
+    borderRadius: 6,
+    marginBottom: 5,
+  },
+  upNextEpisode: {
+    fontSize: 13,
+  },
+  upNextTitle: {
+    fontWeight: '600',
+    fontSize: 18,
+  },
+  upNextDesc: {
+    fontWeight: '400',
+    color: 'gray',
+    fontSize: 15,
+  },
+  emptyMessage: {
+    fontSize: 21,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  queueItemImage: {
+    marginRight: 5,
+  },
+  queueItemTitle: {
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  queueItemNumber: {
+    fontSize: 15,
+  },
+  rowBack: {
+    alignItems: 'center',
+    backgroundColor: '#DDD',
+    flexDirection: 'row',
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingLeft: 15,
+  },
+
+  backRightBtn: {
+    alignItems: 'center',
+    bottom: 0,
+    justifyContent: 'center',
+    position: 'absolute',
+    top: 0,
+    width: 75,
+  },
+  backRightBtnLeft: {
+    backgroundColor: 'blue',
+    right: 75,
+  },
+  backRightBtnRight: {
+    backgroundColor: 'red',
+    right: 0,
+  },
+});

@@ -163,7 +163,7 @@ const MyQueueScreen: FC<QueueProps> = (props) => {
         onPress={() => {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           //dispatch("addToQueue", { key: item.title, data: item });
-          addToQueue({key: item.episode.title, data: item});
+          addToQueue({key: item.detail.title, data: item});
           //   const s: SimklEpisodes = {
           //     embedLink: item.episode.link,
           //     episode: item.episode.episode,

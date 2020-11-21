@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
 import {useNavigation} from '@react-navigation/native';
 import React, {FC, useCallback, useEffect, useRef, useState} from 'react';
@@ -14,14 +15,12 @@ import {
 import Icon from 'react-native-dynamic-vector-icons';
 import {FlatList} from 'react-native-gesture-handler';
 import {StretchyScrollView} from 'react-native-stretchy';
-import {
-  useAnilistRequest,
-  useDetailedHook,
-  useSimklRequests,
-} from '../../../Hooks';
+import {useAnilistRequest, useDetailedHook} from '../../../Hooks';
 import {
   AnilistCharacterModel,
   AnilistDetailedGraph,
+  AnilistRecommendationPageEdgeModel,
+  AnilistRecommendationPageModel,
   Media,
 } from '../../../Models/Anilist';
 import {useTheme} from '../../../Stores';
@@ -32,6 +31,7 @@ import {
   MapAnilistStatusToString,
 } from '../../../Util';
 import {
+  BaseCards,
   BindTitleBlock,
   DangoImage,
   Divider,
@@ -47,6 +47,7 @@ import ViewPager from '@react-native-community/viewpager';
 import StatusPage from './StatusPage';
 import {useAsyncStorage} from '@react-native-async-storage/async-storage';
 import {DetailedDatabaseModel} from '../../../Models/taiyaki';
+import {useQueueStore, useUpNextStore} from '../../../Stores/queue';
 
 const {height, width} = Dimensions.get('window');
 const ITEM_HEIGHT = height * 0.26;
@@ -84,6 +85,8 @@ const DetailScreen: FC<Props> = (props) => {
   // );
 
   const detailedHook = useDetailedHook(id, database, data?.data.Media.idMal);
+  const addUpNext = useUpNextStore((_) => _.addAll);
+  const queueLength = useQueueStore((_) => _.queueLength);
 
   const {getItem, mergeItem} = useAsyncStorage(id.toString());
 
@@ -118,7 +121,7 @@ const DetailScreen: FC<Props> = (props) => {
     if (props.route.params.embedLink) {
       mergeItem(
         JSON.stringify({
-          title: data?.data.Media.title,
+          title: data?.data.Media.title.romaji,
           coverImage: data?.data.Media.coverImage.extraLarge,
         }),
       ).finally(getDatabase);
@@ -166,7 +169,7 @@ const DetailScreen: FC<Props> = (props) => {
       fontSize: 19,
       fontWeight: '700',
       marginTop: height * 0.01,
-      marginBottom: height * 0.01,
+      marginBottom: height * 0.02,
     },
     shadowView: {
       ...Platform.select({
@@ -272,7 +275,7 @@ const DetailScreen: FC<Props> = (props) => {
       </ThemedSurface>
     );
 
-  const IconRow = (name: 'string' | number, data: string) => {
+  const IconRow = (name: string | number, data: string) => {
     return (
       <View style={{justifyContent: 'space-between', alignItems: 'center'}}>
         {typeof name === 'string' ? (
@@ -326,6 +329,12 @@ const DetailScreen: FC<Props> = (props) => {
       </View>
     );
   };
+  const _renderRec = ({item}: {item: AnilistRecommendationPageEdgeModel}) => {
+    const {title, coverImage, id} = item.node.mediaRecommendation;
+    return (
+      <BaseCards image={coverImage.extraLarge} title={title.romaji} id={id} />
+    );
+  };
 
   const {
     bannerImage,
@@ -346,6 +355,7 @@ const DetailScreen: FC<Props> = (props) => {
     season,
     seasonYear,
     characters,
+    recommendations,
     startDate,
     endDate,
     nextAiringEpisode,
@@ -399,8 +409,23 @@ const DetailScreen: FC<Props> = (props) => {
         ) : detailedHook ? (
           !detailedHook.error ? (
             <WatchTile
-              data={detailedHook.data[0]}
-              onPress={() => {}}
+              episode={
+                detailedHook.data.find(
+                  (i) =>
+                    i.episode === (database.lastWatching?.data?.episode ?? 1),
+                ) ?? detailedHook.data.splice(-1)[0]
+              }
+              detail={database}
+              onPress={() => {
+                navigation.navigate('EpisodesList', {
+                  episodes: detailedHook.data,
+                  database: database,
+                });
+              }}
+              onPlay={() => {
+                if (queueLength === 0) addUpNext(detailedHook.data);
+                // MOVE TO VIDEO PAGE
+              }}
               isFollowing={database?.isFollowing}
               onFollow={async (following) => {
                 setDatabase((database) => {
@@ -444,7 +469,7 @@ const DetailScreen: FC<Props> = (props) => {
           <ThemedText style={styles.subTitle}>More Information</ThemedText>
           <View style={[styles.rowView, styles.infoRowView]}>
             {IconRow(Number((meanScore * 0.1).toFixed(1)), 'Mean')}
-            {IconRow('new-releases', MapAnilistStatusToString.get(status))}
+            {IconRow('new-releases', MapAnilistStatusToString.get(status)!)}
             {IconRow(episodes, episodes === 1 ? 'Episode' : 'Episodes')}
             {IconRow('tv', format)}
           </View>
@@ -475,7 +500,7 @@ const DetailScreen: FC<Props> = (props) => {
             <Button
               title={'See All'}
               color={theme.colors.accent}
-              onPress={() => {}}
+              onPress={() => navigation.push('Characters', {id})}
             />
           </View>
           <FlatList
@@ -491,6 +516,35 @@ const DetailScreen: FC<Props> = (props) => {
             })}
           />
         </View>
+        {/* //Recommendations */}
+        {recommendations.edges.length > 0 ? (
+          <View style={[styles.surface]}>
+            <View style={[styles.rowView, {justifyContent: 'space-between'}]}>
+              <ThemedText style={styles.subTitle}>Recommendations</ThemedText>
+              <Button
+                title={'See All'}
+                color={theme.colors.accent}
+                onPress={() => navigation.push('Recommendations', {id})}
+              />
+            </View>
+            <FlatList
+              data={recommendations.edges.filter(
+                (i) => i.node.mediaRecommendation,
+              )}
+              renderItem={_renderRec}
+              keyExtractor={(item) =>
+                item.node.mediaRecommendation.id.toString()
+              }
+              horizontal
+              contentContainerStyle={{height: ITEM_HEIGHT + 50}}
+              getItemLayout={(data, index) => ({
+                length: ITEM_HEIGHT,
+                offset: ITEM_HEIGHT * index,
+                index,
+              })}
+            />
+          </View>
+        ) : null}
       </View>
     </StretchyScrollView>
   );
@@ -508,10 +562,12 @@ const DetailScreen: FC<Props> = (props) => {
           {PageOne()}
         </View>
         <StatusPage
-          banner={bannerImage}
+          banner={bannerImage ?? coverImage.extraLarge}
           key={'status'}
           anilistEntry={mappedEntry}
           idMal={idMal}
+          id={id}
+          title={title.romaji}
         />
       </ViewPager>
     </>

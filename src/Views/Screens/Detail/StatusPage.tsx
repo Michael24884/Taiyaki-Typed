@@ -1,32 +1,47 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {FC, useEffect} from 'react';
-import {Dimensions, Image, StyleSheet, View} from 'react-native';
+import React, {FC, useEffect, useRef, useState} from 'react';
+import {
+  Dimensions,
+  Easing,
+  Animated,
+  StyleSheet,
+  View,
+  Modal,
+} from 'react-native';
 import Icon from 'react-native-dynamic-vector-icons';
-import {FlatList, ScrollView} from 'react-native-gesture-handler';
 import {StretchyScrollView} from 'react-native-stretchy';
 import {useMalRequests} from '../../../Hooks';
-import {AnilistMediaListEntry} from '../../../Models/Anilist';
 import {MALDetailed} from '../../../Models/MyAnimeList';
-import {TaiyakiUserModel, TrackingServiceTypes} from '../../../Models/taiyaki';
+import {
+  DetailedDatabaseIDSModel,
+  TrackingServiceTypes,
+} from '../../../Models/taiyaki';
+
 import {useTheme, useUserProfiles} from '../../../Stores';
 import {
+  DangoImage,
   StatusInfo,
   StatusTiles,
   ThemedButton,
   ThemedText,
 } from '../../Components';
+import {UpdatingAnimeStatusPage} from '../../Components/detailedParts';
 
 const {height, width} = Dimensions.get('window');
 
 interface Props {
-  banner?: string;
+  banner: string;
   anilistEntry?: StatusInfo;
-  idMal: string;
+  title: string;
+  id: number;
+  idMal?: string;
 }
 const StatusPage: FC<Props> = (props) => {
   const theme = useTheme((_) => _.theme);
-  const {banner, anilistEntry, idMal} = props;
+  const {banner, anilistEntry, idMal, id, title} = props;
   const profiles = useUserProfiles((_) => _.profiles);
+  const controller = useRef(new Animated.Value(0)).current;
+  const [open, setOpen] = useState<boolean>(false);
 
   const {
     query: {data: MyAnimeListData},
@@ -47,6 +62,25 @@ const StatusPage: FC<Props> = (props) => {
   ) => {
     return <StatusTiles data={item} tracker={tracker} />;
   };
+
+  useEffect(() => {
+    _Animate();
+  }, [open]);
+
+  const _Animate = () => {
+    const Animate: Animated.TimingAnimationConfig = {
+      toValue: open ? 1 : 0,
+      useNativeDriver: false,
+      duration: 250,
+      easing: Easing.inOut(Easing.ease),
+    };
+    Animated.timing(controller, Animate).start();
+  };
+
+  const animatedImageStyle = controller.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height * 0.3, height],
+  });
 
   const profileRevealer = () => {
     if (profiles.length === 0)
@@ -88,7 +122,7 @@ const StatusPage: FC<Props> = (props) => {
             This will update all your sources
           </ThemedText>
           <ThemedButton
-            onPress={() => {}}
+            onPress={() => setOpen((open) => !open)}
             title={'Update'}
             style={{alignSelf: 'center'}}
           />
@@ -98,20 +132,31 @@ const StatusPage: FC<Props> = (props) => {
   };
 
   return (
-    <StretchyScrollView
-      image={
-        banner
-          ? {uri: banner}
-          : require('../../../assets/images/icon_round.png')
-      }
-      imageHeight={height * 0.3}
-      scrollEnabled={profiles.length > 0}
-      style={{
-        marginBottom: height * 0.1,
-        backgroundColor: theme.colors.backgroundColor,
-      }}>
-      {profileRevealer()}
-    </StretchyScrollView>
+    <View style={{flex: 1}}>
+      <Modal
+        visible={open}
+        animationType={'slide'}
+        hardwareAccelerated
+        presentationStyle={'formSheet'}
+        onRequestClose={() => setOpen(false)}>
+        <View style={{flex: 1}}>
+          <UpdatingAnimeStatusPage
+            ids={{anilist: id, myanimelist: Number(idMal)}}
+          />
+        </View>
+      </Modal>
+      <StretchyScrollView
+        image={{uri: banner}}
+        imageHeight={height * 0.3}
+        scrollEnabled={profiles.length > 0 && !open}
+        style={{
+          flex: 1,
+          marginBottom: height * 0.1,
+          backgroundColor: theme.colors.backgroundColor,
+        }}>
+        {profileRevealer()}
+      </StretchyScrollView>
+    </View>
   );
 };
 
@@ -132,6 +177,23 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  blurView: {
+    zIndex: 100,
+  },
+  absolute: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  onBlurTitle: {
+    color: 'white',
+    fontSize: 21,
+    fontWeight: '700',
+    marginTop: height * 0.15,
+    textAlign: 'center',
   },
 });
 

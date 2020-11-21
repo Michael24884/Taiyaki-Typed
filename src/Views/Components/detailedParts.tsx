@@ -2,7 +2,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import React, {FC, useCallback, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, Dimensions, StyleSheet, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Easing,
+  StyleSheet,
+  View,
+} from 'react-native';
 import Icon from 'react-native-dynamic-vector-icons';
 import {FlatList, TextInput} from 'react-native-gesture-handler';
 import {SourceBase} from '../../Classes/SourceBase';
@@ -28,8 +35,8 @@ const SearchBindPage: FC<Props> = (props) => {
   const navigation = useNavigation();
   const [archives, setArchives] = useState<TaiyakiArchiveModel[]>([]);
   const theme = useTheme((_) => _.theme);
-  //   const [query, setQuery] = useState<string>(title);
-  const query = useRef<string>(title);
+  const [query, setQuery] = useState<string>(title);
+
   const [isLoading, setLoading] = useState<boolean>(false);
 
   const [currentArchive, setCurrentArchive] = useState<TaiyakiArchiveModel>();
@@ -47,7 +54,7 @@ const SearchBindPage: FC<Props> = (props) => {
       setArchives(archives);
       setCurrentArchive(archives[0]);
       setLoading(true);
-      new SourceBase(archives[0]).scrapeTitle(query.current).then((results) => {
+      new SourceBase(archives[0]).scrapeTitle(query).then((results) => {
         setResults(results.results);
         setLoading(false);
       });
@@ -89,7 +96,7 @@ const SearchBindPage: FC<Props> = (props) => {
   const _findTitles = async () => {
     setLoading(true);
     source
-      .scrapeTitle(query.current)
+      .scrapeTitle(query)
       .then((results) => {
         setResults(results.results);
         setLoading(results.loading);
@@ -138,8 +145,8 @@ const SearchBindPage: FC<Props> = (props) => {
         autoCorrect={false}
         autoCompleteType="off"
         placeholder={'Use a custom search'}
-        value={query.current}
-        onChangeText={(value) => (query.current = value)}
+        value={query}
+        onChangeText={setQuery}
         onSubmitEditing={_findTitles}
       />
       <ThemedText style={styles.bindPage.sourceName}>
@@ -188,7 +195,32 @@ const SearchBindPage: FC<Props> = (props) => {
   );
 };
 
+export const UpdatingAnimeStatusPage: FC<{ids: DetailedDatabaseIDSModel}> = (
+  props,
+) => {
+  const {ids} = props;
+  const controller = useRef(new Animated.Value(0)).current;
+
+  const Animate: Animated.TimingAnimationConfig = {
+    toValue: 1,
+    useNativeDriver: true,
+    duration: 1250,
+    easing: Easing.inOut(Easing.ease),
+  };
+
+  return (
+    <Animated.View
+      style={[styles.updatingPage.view, {backgroundColor: 'pink'}]}
+    />
+  );
+};
+
 const styles = {
+  updatingPage: StyleSheet.create({
+    view: {
+      flex: 1,
+    },
+  }),
   bindPage: StyleSheet.create({
     view: {
       flex: 1,

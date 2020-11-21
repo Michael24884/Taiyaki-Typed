@@ -15,7 +15,9 @@ import {
   AnilistRecommendationPageModel,
 } from '../../Models/Anilist';
 import {SimklEpisodes} from '../../Models/SIMKL';
+import {DetailedDatabaseModel, MyQueueModel} from '../../Models/taiyaki';
 import {useTheme} from '../../Stores';
+import {useQueueStore} from '../../Stores/queue';
 import {TaiyakiParsedText, ThemedCard, ThemedText} from './base';
 import DangoImage from './image';
 import {FlavoredButtons} from './rows';
@@ -126,11 +128,24 @@ export const RecCards: FC<{items: AnilistRecommendationPageEdgeModel}> = (
 
 export const EpisodeTiles: FC<{
   episode: SimklEpisodes;
-  counterIndex: number;
+  detail: DetailedDatabaseModel;
 }> = (props) => {
-  const {episode, counterIndex} = props;
-  const [hidden, setHidden] = useState<boolean>(counterIndex < episode.episode);
+  const {episode, detail} = props;
+  const {title, lastWatching} = detail;
+  const [hidden, setHidden] = useState<boolean>(
+    (lastWatching?.data?.episode ?? 1) < episode.episode,
+  );
+  const [descExpanded, setExpanded] = useState<boolean>(false);
   const theme = useTheme((_) => _.theme);
+
+  const {addToQueue} = useQueueStore((_) => _);
+
+  const queue = useQueueStore((_) => _.myQueue);
+
+  const inList: boolean =
+    queue[title] &&
+    queue[title].find((i) => i.episode.episode === episode.episode) !==
+      undefined;
 
   return (
     <ThemedCard style={styles.tiles.view}>
@@ -192,16 +207,60 @@ export const EpisodeTiles: FC<{
               Episode {episode.episode}
             </ThemedText>
             <ThemedText
+              numberOfLines={descExpanded ? undefined : 1}
               style={[
                 styles.tiles.episodeTitle,
                 {color: theme.colors.primary},
               ]}>
               {episode.title}
             </ThemedText>
-            <ThemedText style={styles.tiles.desc} numberOfLines={4}>
+            {inList ? (
+              <ThemedText style={styles.tiles.queueMarker}>In Queue</ThemedText>
+            ) : null}
+            <ThemedText
+              style={styles.tiles.desc}
+              numberOfLines={descExpanded ? undefined : 3}>
               {episode.description ??
                 'No description provided for this episode at this time'}
             </ThemedText>
+            <View
+              style={{
+                flexDirection: 'row',
+                padding: 8,
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+                backgroundColor: theme.colors.card,
+                flex: 1,
+              }}>
+              {episode.description?.length ?? 0 > 650 ? (
+                <FlavoredButtons
+                  size={40}
+                  name={descExpanded ? 'arrow-up' : 'arrow-down'}
+                  onPress={() => {
+                    LayoutAnimation.configureNext(
+                      LayoutAnimation.Presets.easeInEaseOut,
+                    );
+                    setExpanded((ex) => !ex);
+                  }}
+                />
+              ) : (
+                <View />
+              )}
+              <View
+                style={{justifyContent: 'space-between', flexDirection: 'row'}}>
+                <FlavoredButtons name={'play'} onPress={() => {}} />
+                <FlavoredButtons
+                  name={inList ? 'playlist-remove' : 'playlist-plus'}
+                  onPress={() => {
+                    LayoutAnimation.configureNext(
+                      LayoutAnimation.Presets.easeInEaseOut,
+                    );
+                    const queueModel: MyQueueModel = {detail, episode};
+                    addToQueue({key: title, data: queueModel});
+                  }}
+                />
+              </View>
+            </View>
           </View>
         </View>
       )}
@@ -222,8 +281,13 @@ const styles = {
       right: 0,
       bottom: 0,
     },
+    queueMarker: {
+      color: 'green',
+      fontWeight: '700',
+      fontSize: 13,
+    },
     image: {
-      height: height * 0.21,
+      height: height * 0.25,
       width: '100%',
     },
     episodeNumber: {
@@ -239,13 +303,14 @@ const styles = {
       fontWeight: '400',
     },
     episodeTitle: {
-      fontSize: 17,
+      fontSize: 19,
       fontWeight: '600',
     },
     desc: {
       color: 'grey',
       fontSize: 14,
       fontWeight: '400',
+      marginTop: 5,
     },
   }),
   rec: StyleSheet.create({

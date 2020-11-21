@@ -1,8 +1,13 @@
-import {TaiyakiUserModel} from '../../Models/taiyaki';
+import {TaiyakiUserModel, WatchingStatus} from '../../Models/taiyaki';
 import {TrackerBase} from './Trackers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {AnilistViewerGraph, AnilistViewerModel} from '../../Models/Anilist';
+import {
+  AnilistUpdateMediaGraph,
+  AnilistViewerGraph,
+  AnilistViewerModel,
+} from '../../Models/Anilist';
 import {useUserProfiles} from '../../Stores';
+import {MapWatchingStatusToAnilist} from '../../Util';
 
 export class AnilistBase implements TrackerBase {
   private baseUrl: string = 'https://graphql.anilist.co';
@@ -42,7 +47,47 @@ export class AnilistBase implements TrackerBase {
       .then(() => useUserProfiles.getState().addToProfile(profileStore!));
   }
 
-  updateStatus(): Promise<void> {
-    throw new Error('Method not implemented.');
+  async updateStatus(
+    id: number,
+    episodesWatched: number,
+    status: WatchingStatus,
+    startedAt: Date,
+    completedAt: Date,
+    totalEpisodes: number,
+    score: number,
+  ): Promise<void> {
+    const aniAuth = useUserProfiles
+      .getState()
+      .profiles.find((i) => i.source === 'Anilist');
+    if (!aniAuth) return;
+    const statusToAni = MapWatchingStatusToAnilist.get(status) ?? 'PLANNING';
+    const dateToFuzzy = (time: Date): string => {
+      const date = time
+        .toLocaleDateString([], {
+          day: 'numeric',
+          month: 'numeric',
+          year: 'numeric',
+        })
+        .split('/');
+      return JSON.stringify({month: date[0], day: date[1], year: date[2]});
+    };
+    const mediaGraph = AnilistUpdateMediaGraph(
+      id,
+      score,
+      episodesWatched,
+      dateToFuzzy(startedAt),
+      dateToFuzzy(completedAt),
+      statusToAni,
+    );
+
+    const headers = {
+      Authorization: 'Bearer ' + aniAuth.bearerToken,
+      'Content-Type': 'application/json',
+    };
+    await fetch(this.baseUrl, {
+      headers,
+      body: JSON.stringify({query: mediaGraph}),
+      method: 'POST',
+    });
   }
 }
