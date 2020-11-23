@@ -1,4 +1,12 @@
 import {LoginConfigModel} from '../taiyaki';
+import {
+  AnilistSourceTypes,
+  AnilistStatusTypes,
+  AnilistGenresTypes,
+  AnilistFormatTypes,
+  AnilistSortTypes,
+  AnilistSeasonsTypes,
+} from './requestModels';
 
 export const AnilistLoginModel: LoginConfigModel = {
   clientId: '2415',
@@ -13,7 +21,8 @@ export type AnilistRequestTypes =
   | 'Trending'
   | 'Seasonal'
   | 'Character'
-  | 'Recommendations';
+  | 'Recommendations'
+  | 'Search';
 
 export const AnilistPopularGraph = (index?: number): string => `
 query {
@@ -240,3 +249,55 @@ query {
   }
 }
 `;
+
+export const AnilistSearchGraph = (
+  query: string,
+  page: number = 1,
+  genres?: AnilistGenresTypes[],
+  seasonYear?: number,
+  season?: AnilistSeasonsTypes,
+  formats?: AnilistFormatTypes[],
+  sort?: AnilistSortTypes,
+  status?: AnilistStatusTypes,
+  source?: AnilistSourceTypes,
+): string => {
+  let queryString: string = '';
+  if (genres) {
+    queryString += `genre_in: [${genres.map((i) => `"${i}"`)}], `;
+  }
+  if (seasonYear) {
+    queryString += `seasonYear: ${seasonYear}, `;
+  }
+  if (season) {
+    queryString += `season: ${season}, `;
+  }
+  if (formats) {
+    queryString += `format_in: [${formats.join(', ')}], `;
+  }
+  if (sort) {
+    queryString += `sort: ${sort}, `;
+  }
+  if (status) {
+    queryString += `status: ${status}, `;
+  }
+  if (source) {
+    queryString += `source: ${source}`;
+  }
+
+  return `
+  query {
+    Page(perPage: 50, page: ${page}) {
+      pageInfo{
+        hasNextPage
+        currentPage
+      }
+      media(search: "${query}", isAdult: false, type:ANIME, ${queryString}){
+        title{romaji}
+        id
+        coverImage{extraLarge}
+        meanScore
+      }
+    }
+  }
+  `;
+};

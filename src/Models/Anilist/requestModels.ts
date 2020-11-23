@@ -15,6 +15,39 @@ export type AnilistSourceTypes =
   | 'ANIME';
 
 export type AnilistCharacterRoleTypes = 'SUPPORTING' | 'MAIN' | 'BACKGROUND';
+export type AnilistGenresTypes =
+  | 'Action'
+  | 'Adventure'
+  | 'Comedy'
+  | 'Drama'
+  | 'Ecchi'
+  | 'Fantasy'
+  | 'Horror'
+  | 'Mahou Shoujo'
+  | 'Mecha'
+  | 'Music'
+  | 'Mystery'
+  | 'Psychological'
+  | 'Romance'
+  | 'Sci-Fi'
+  | 'Slice of Life'
+  | 'Sports'
+  | 'Supernatural'
+  | 'Thriller';
+export type AnilistFormatTypes =
+  | 'TV'
+  | 'TV_SHORT'
+  | 'MOVIE'
+  | 'SPECIAL'
+  | 'OVA'
+  | 'ONA'
+  | 'MUSIC';
+export type AnilistSortTypes =
+  | 'TITLE_ROMAJI'
+  | 'POPULARITY_DESC'
+  | 'SCORE_DESC'
+  | 'TRENDING_DESC'
+  | 'FAVOURITES_DESC';
 export type AnilistPagedData = {
   data: {
     Page: {
@@ -130,6 +163,15 @@ export type AnilistCharacterPageModel = {
         pageInfo: PageInfo;
         edges: AnilistCharacterPageEdgeModel[];
       };
+    };
+  };
+};
+
+export type AnilistSearchModel = {
+  data: {
+    Page: {
+      pageInfo: PageInfo;
+      media: Media[];
     };
   };
 };

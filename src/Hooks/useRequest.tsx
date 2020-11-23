@@ -6,12 +6,19 @@ import {MyAnimeList} from '../Classes/Trackers';
 import {
   AnilistCharacterPageGraph,
   AnilistCharacterPageModel,
+  AnilistFormatTypes,
+  AnilistGenresTypes,
   AnilistPagedData,
   AnilistPopularGraph,
   AnilistRecommendationPageGraph,
   AnilistRecommendationPageModel,
   AnilistRequestTypes,
+  AnilistSearchGraph,
   AnilistSeasonalGraph,
+  AnilistSeasonsTypes,
+  AnilistSortTypes,
+  AnilistSourceTypes,
+  AnilistStatusTypes,
   AnilistTrendingGraph,
   Media,
   PageInfo,
@@ -119,7 +126,22 @@ export function useInifiniteAnilistRequest<
   T extends
     | {data: {Page: {pageInfo: PageInfo}}}
     | {data: {Media: {[key: string]: {pageInfo: PageInfo}}}}
->(key: AnilistRequestTypes, id?: number) {
+>(
+  key: AnilistRequestTypes,
+  id?: number,
+  filters?: {
+    query: string;
+    filters: {
+      sort?: AnilistSortTypes;
+      season?: AnilistSeasonsTypes;
+      year?: number;
+      genres?: AnilistGenresTypes[];
+      formats?: AnilistFormatTypes[];
+      status?: AnilistStatusTypes;
+      source?: AnilistSourceTypes;
+    };
+  },
+) {
   // const {animated} = requestConfig;
   const baseUrl = 'https://graphql.anilist.co';
   // eslint-disable-next-line no-undef
@@ -137,6 +159,28 @@ export function useInifiniteAnilistRequest<
         return AnilistCharacterPageGraph(id!, index);
       case 'Recommendations':
         return AnilistRecommendationPageGraph(id!, index);
+      case 'Search':
+        const {
+          genres,
+          status,
+          season,
+          year,
+          sort,
+          formats,
+          source,
+        } = filters!.filters;
+        console.log('new source', source);
+        return AnilistSearchGraph(
+          filters!.query,
+          index,
+          genres,
+          year,
+          season,
+          formats,
+          sort,
+          status,
+          source,
+        );
       default:
         throw 'This property does not exist';
     }
@@ -157,9 +201,10 @@ export function useInifiniteAnilistRequest<
       .then((data) => data as T);
   };
 
-  const keyGen = (): string => {
+  const keyGen = (): string | null => {
     if (key === 'Character') return 'characters' + id!;
     if (key === 'Recommendations') return 'recommendations' + id!;
+    if (key === 'Search') return filters ? 'search' + filters.query : null;
     return key;
   };
 

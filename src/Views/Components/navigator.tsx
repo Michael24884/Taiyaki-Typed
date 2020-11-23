@@ -1,5 +1,5 @@
 import React from 'react';
-import {NavigationContainer} from '@react-navigation/native';
+import {NavigationContainer, useNavigation} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {DetailScreen, DiscoveryScreen, SettingsScreen} from '../Screens';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
@@ -15,6 +15,7 @@ import EpisodesList from '../Screens/Detail/EpisodesList';
 import CharacterListScreen from '../Screens/Detail/ViewMore/CharacterListScreen';
 import RecommendationList from '../Screens/Detail/ViewMore/RecommendationListScreen';
 import MoreItemsScreen from '../Screens/MoreItemsScreen';
+import SearchPage from '../Screens/SearchPage';
 
 export const Navigator = () => {
   const theme = useTheme((_) => _.theme);
@@ -22,12 +23,34 @@ export const Navigator = () => {
   const Tab = createBottomTabNavigator();
 
   function HomeStack() {
+    const navigation = useNavigation();
     return (
       <Stack.Navigator initialRouteName={'Home'}>
-        <Stack.Screen name={'Home'} component={DiscoveryScreen} />
+        <Stack.Screen
+          name={'Home'}
+          component={DiscoveryScreen}
+          options={{
+            headerRight: () => (
+              <Icon
+                size={25}
+                style={{marginRight: 15}}
+                name={'search'}
+                type={'MaterialIcons'}
+                onPress={() => navigation.navigate('SearchPage')}
+              />
+            ),
+          }}
+        />
         <Stack.Screen name={'BindPage'} component={SearchBindPage} />
         <Stack.Screen name={'EpisodesList'} component={EpisodesList} />
         <Stack.Screen name={'See More'} component={MoreItemsScreen} />
+        <Stack.Screen
+          name={'SearchPage'}
+          component={SearchPage}
+          options={{
+            title: 'Search',
+          }}
+        />
         <Stack.Screen
           name={'Characters'}
           component={CharacterListScreen}
