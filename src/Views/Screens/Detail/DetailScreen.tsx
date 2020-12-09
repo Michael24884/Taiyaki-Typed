@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import React, {FC, useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Animated,
   View,
+  Modal,
 } from 'react-native';
 import Icon from 'react-native-dynamic-vector-icons';
 import {FlatList} from 'react-native-gesture-handler';
@@ -20,10 +21,9 @@ import {
   AnilistCharacterModel,
   AnilistDetailedGraph,
   AnilistRecommendationPageEdgeModel,
-  AnilistRecommendationPageModel,
   Media,
 } from '../../../Models/Anilist';
-import {useTheme} from '../../../Stores';
+import {useSettingsStore, useTheme, useUserProfiles} from '../../../Stores';
 import {
   dateNumToString,
   MapAnilistSeasonsToString,
@@ -43,26 +43,38 @@ import {
   WatchTile,
 } from '../../Components';
 import {SynopsisExpander} from '../../Components/header';
-import ViewPager from '@react-native-community/viewpager';
 import StatusPage from './StatusPage';
 import {useAsyncStorage} from '@react-native-async-storage/async-storage';
-import {DetailedDatabaseModel} from '../../../Models/taiyaki';
+import {DetailedDatabaseModel, MyQueueModel} from '../../../Models/taiyaki';
 import {useQueueStore, useUpNextStore} from '../../../Stores/queue';
+import {StatusCards} from '../../Components/detailedParts';
 
 const {height, width} = Dimensions.get('window');
 const ITEM_HEIGHT = height * 0.26;
 
 interface Props {
-  route: {params: {id: number; embedLink?: string}};
+  route: {
+    params: {
+      id: number;
+      malID?: string;
+      embedLink?: string;
+      updateRequested?: boolean;
+    };
+  };
 }
 
 LogBox.ignoreLogs(['Aborted']);
 
 const DetailScreen: FC<Props> = (props) => {
-  const {id} = props.route.params;
+  const {malID} = props.route.params;
+  const settings = useSettingsStore((_) => _.settings);
+  const profiles = useUserProfiles((_) => _.profiles);
+  const [statusPageVisible, setStatusPageVisibility] = useState<boolean>(false);
   const navigation = useNavigation();
   const scrollValue = useRef(new Animated.Value(0)).current;
   const theme = useTheme((_) => _.theme);
+
+  const [id, setID] = useState<number>(props.route.params.id);
 
   const [database, setDatabase] = useState<DetailedDatabaseModel>();
 
@@ -70,8 +82,8 @@ const DetailScreen: FC<Props> = (props) => {
     query: {data},
     controller,
   } = useAnilistRequest<{data: {Media: Media}}>(
-    'Detailed' + id.toString(),
-    AnilistDetailedGraph(id),
+    'Detailed' + (malID ?? id.toString()),
+    AnilistDetailedGraph(id, malID),
   );
 
   // const {
@@ -86,24 +98,20 @@ const DetailScreen: FC<Props> = (props) => {
 
   const detailedHook = useDetailedHook(id, database, data?.data.Media.idMal);
   const addUpNext = useUpNextStore((_) => _.addAll);
-  const queueLength = useQueueStore((_) => _.queueLength);
-
-  const {getItem, mergeItem} = useAsyncStorage(id.toString());
-
-  const getDatabase = useCallback(async () => {
-    const file = await getItem();
-    if (file) {
-      const model = JSON.parse(file) as DetailedDatabaseModel;
-      setDatabase(model);
-    }
-  }, []);
+  const {queueLength, addAllToQueue} = useQueueStore((_) => _);
 
   useEffect(() => {
-    getDatabase();
+    //getDatabase();
     return () => {
       controller.abort();
     };
   }, []);
+
+  useEffect(() => {
+    if (data) {
+      setID(data.data.Media.id);
+    }
+  }, [data]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -116,17 +124,6 @@ const DetailScreen: FC<Props> = (props) => {
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
-
-  useEffect(() => {
-    if (props.route.params.embedLink) {
-      mergeItem(
-        JSON.stringify({
-          title: data?.data.Media.title.romaji,
-          coverImage: data?.data.Media.coverImage.extraLarge,
-        }),
-      ).finally(getDatabase);
-    }
-  }, [props.route.params.embedLink]);
 
   const AnimatedHeader = Animated.createAnimatedComponent(TaiyakiHeader);
 
@@ -251,14 +248,47 @@ const DetailScreen: FC<Props> = (props) => {
     },
   });
 
+  const {getItem, mergeItem, removeItem} = useAsyncStorage(`${id}`);
+
+  const getDatabase = async () => {
+    const file = await getItem();
+    if (file) {
+      const model = JSON.parse(file) as DetailedDatabaseModel;
+      setDatabase(model);
+    }
+  };
+
+  useEffect(() => {
+    if (props.route.params.embedLink) {
+      mergeItem(
+        JSON.stringify({
+          title: data?.data.Media.title.romaji,
+          coverImage: data?.data.Media.coverImage.extraLarge,
+        }),
+      ).finally(getDatabase);
+    }
+  }, [props.route.params.embedLink]);
+
+  useFocusEffect(
+    useCallback(() => {
+      getDatabase();
+    }, [id]),
+  );
+
   //Save the simkl id if its missing from the database
   useEffect(() => {
     const saveIDS = async () => {
       if (detailedHook && detailedHook.ids && database && !database.ids.simkl) {
-        await mergeItem(JSON.stringify({ids: detailedHook.ids}));
+        await mergeItem(
+          JSON.stringify({
+            ids: detailedHook.ids,
+            totalEpisodes: detailedHook.data.length,
+          }),
+        );
         setDatabase((database) => {
           if (database) {
             database.ids = {...database.ids, ...detailedHook.ids};
+            database.totalEpisodes = detailedHook.data.length;
             return database;
           }
         });
@@ -267,7 +297,7 @@ const DetailScreen: FC<Props> = (props) => {
     saveIDS();
   }, [detailedHook]);
 
-  if (!data)
+  if (!data || !id)
     return (
       <ThemedSurface
         style={[styles.empty, {backgroundColor: theme.colors.backgroundColor}]}>
@@ -332,8 +362,26 @@ const DetailScreen: FC<Props> = (props) => {
   const _renderRec = ({item}: {item: AnilistRecommendationPageEdgeModel}) => {
     const {title, coverImage, id} = item.node.mediaRecommendation;
     return (
-      <BaseCards image={coverImage.extraLarge} title={title.romaji} id={id} />
+      <View style={{marginTop: 10}}>
+        <BaseCards image={coverImage.extraLarge} title={title.romaji} id={id} />
+      </View>
     );
+  };
+
+  const _addUpNext = () => {
+    if (!database || !detailedHook) return;
+    if (queueLength === 0) {
+      const next =
+        database.lastWatching?.episode ??
+        database.lastWatching?.data?.episode ??
+        1;
+      const portion: number = detailedHook.data.findIndex(
+        (i) => i.episode === next,
+      );
+      if (portion + 1 < detailedHook.data.length) {
+        addUpNext(detailedHook.data.slice(portion + 1));
+      }
+    }
   };
 
   const {
@@ -359,11 +407,11 @@ const DetailScreen: FC<Props> = (props) => {
     startDate,
     endDate,
     nextAiringEpisode,
-    mappedEntry,
   } = data.data.Media;
 
   const PageOne = () => (
     <StretchyScrollView
+      style={{marginBottom: height * 0.1}}
       backgroundColor={theme.colors.backgroundColor}
       image={
         bannerImage
@@ -410,28 +458,111 @@ const DetailScreen: FC<Props> = (props) => {
           !detailedHook.error ? (
             <WatchTile
               episode={
-                detailedHook.data.find(
-                  (i) =>
-                    i.episode === (database.lastWatching?.data?.episode ?? 1),
-                ) ?? detailedHook.data.splice(-1)[0]
+                detailedHook.data.find((i) => {
+                  if (settings.sync.overrideWatchNext) {
+                    return (
+                      i.episode ===
+                      (database.lastWatching?.episode ??
+                        database.lastWatching?.data?.episode ??
+                        1)
+                    );
+                  }
+                  return (
+                    i.episode ===
+                    (database.lastWatching?.episode ??
+                      database.lastWatching?.data?.episode ??
+                      1)
+                  );
+                }) ?? detailedHook.data[detailedHook.data.length - 1]
               }
               detail={database}
               onPress={() => {
                 navigation.navigate('EpisodesList', {
                   episodes: detailedHook.data,
                   database: database,
+                  updateRequested: () => {
+                    //if (value) getDatabase();
+                  },
                 });
               }}
               onPlay={() => {
-                if (queueLength === 0) addUpNext(detailedHook.data);
+                _addUpNext();
+                const nowPlaying =
+                  detailedHook.data.find(
+                    (i) =>
+                      i.episode ===
+                      (database.lastWatching?.episode ??
+                        database.lastWatching?.data?.episode ??
+                        1),
+                  ) ?? detailedHook.data.splice(-1)[0];
+                const episode: MyQueueModel = {
+                  detail: database,
+                  episode: nowPlaying,
+                };
                 // MOVE TO VIDEO PAGE
+                navigation.navigate('Video', {
+                  episode,
+                  updateRequested: () => {
+                    //  getDatabase();
+                  },
+                });
+              }}
+              onContinueWatching={() => {
+                _addUpNext();
+                const episode: MyQueueModel = {
+                  detail: database,
+                  episode: database.lastWatching.data,
+                };
+                navigation.navigate('Video', {
+                  episode,
+                  updateRequested: () => {
+                    // getDatabase();
+                  },
+                });
               }}
               isFollowing={database?.isFollowing}
               onFollow={async (following) => {
+                console.log('following', following);
                 setDatabase((database) => {
                   if (database) return {...database, isFollowing: following};
                 });
                 await mergeItem(JSON.stringify({isFollowing: following}));
+              }}
+              onRemoveSavedLink={async () => {
+                await removeItem();
+                setDatabase(undefined);
+              }}
+              onAddAllToQueue={() => {
+                const queue: {
+                  key: string;
+                  data: MyQueueModel;
+                }[] = detailedHook.data.map((i) => ({
+                  key: database.title,
+                  data: {episode: i, detail: database},
+                }));
+                addAllToQueue(queue);
+              }}
+              onAddUnwatchedToQueue={() => {
+                const check = database.lastWatching.episode;
+                if (!check) {
+                  const queue: {
+                    key: string;
+                    data: MyQueueModel;
+                  }[] = detailedHook.data.map((i) => ({
+                    key: database.title,
+                    data: {episode: i, detail: database},
+                  }));
+                  addAllToQueue(queue);
+                } else {
+                  const queue: {
+                    key: string;
+                    data: MyQueueModel;
+                  }[] = detailedHook.data.slice(check).map((i) => ({
+                    key: database.title,
+                    data: {episode: i, detail: database},
+                  }));
+                  addAllToQueue(queue);
+                }
               }}
             />
           ) : (
@@ -453,17 +584,24 @@ const DetailScreen: FC<Props> = (props) => {
           )
         ) : null}
 
+        {profiles.length > 0 ? (
+          <StatusCards onPress={() => setStatusPageVisibility(true)} />
+        ) : null}
+
         {/* //Genres */}
-        <View style={styles.surface}>
-          <ThemedText style={styles.subTitle}>Genres</ThemedText>
-          <View style={styles.genresContainer}>
-            {genres.map((i) => (
-              <View key={i} style={styles.genrePills}>
-                <ThemedText style={styles.genreText}>{i}</ThemedText>
-              </View>
-            ))}
+        {genres.length > 0 ? (
+          <View style={styles.surface}>
+            <ThemedText style={styles.subTitle}>Genres</ThemedText>
+            <View style={styles.genresContainer}>
+              {genres.map((i) => (
+                <View key={i} style={styles.genrePills}>
+                  <ThemedText style={styles.genreText}>{i}</ThemedText>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
+        ) : null}
+
         {/* //More Info */}
         <View style={styles.surface}>
           <ThemedText style={styles.subTitle}>More Information</ThemedText>
@@ -494,31 +632,33 @@ const DetailScreen: FC<Props> = (props) => {
             {InfoParentChild('End Date', dateNumToString(endDate))}
           </View>
         </View>
-        <View style={[styles.surface]}>
-          <View style={[styles.rowView, {justifyContent: 'space-between'}]}>
-            <ThemedText style={styles.subTitle}>Characters</ThemedText>
-            <Button
-              title={'See All'}
-              color={theme.colors.accent}
-              onPress={() => navigation.push('Characters', {id})}
+        {characters.nodes.length > 0 ? (
+          <View style={[styles.surface]}>
+            <View style={[styles.rowView, {justifyContent: 'space-between'}]}>
+              <ThemedText style={styles.subTitle}>Characters</ThemedText>
+              <Button
+                title={'See All'}
+                color={theme.colors.accent}
+                onPress={() => navigation.push('Characters', {id})}
+              />
+            </View>
+            <FlatList
+              data={characters.nodes}
+              renderItem={_renderCharacters}
+              keyExtractor={(item) => item.id.toString()}
+              horizontal
+              contentContainerStyle={{height: height * 0.26}}
+              getItemLayout={(data, index) => ({
+                length: ITEM_HEIGHT,
+                offset: ITEM_HEIGHT * index,
+                index,
+              })}
             />
           </View>
-          <FlatList
-            data={characters.nodes}
-            renderItem={_renderCharacters}
-            keyExtractor={(item) => item.id.toString()}
-            horizontal
-            contentContainerStyle={{height: ITEM_HEIGHT}}
-            getItemLayout={(data, index) => ({
-              length: ITEM_HEIGHT,
-              offset: ITEM_HEIGHT * index,
-              index,
-            })}
-          />
-        </View>
+        ) : null}
         {/* //Recommendations */}
         {recommendations.edges.length > 0 ? (
-          <View style={[styles.surface]}>
+          <View style={[styles.surface, {paddingBottom: 12}]}>
             <View style={[styles.rowView, {justifyContent: 'space-between'}]}>
               <ThemedText style={styles.subTitle}>Recommendations</ThemedText>
               <Button
@@ -551,25 +691,43 @@ const DetailScreen: FC<Props> = (props) => {
 
   return (
     <>
+      <Modal
+        visible={statusPageVisible}
+        hardwareAccelerated
+        presentationStyle={'formSheet'}
+        animationType={'slide'}>
+        <StatusPage
+          totalEpisode={episodes}
+          onClose={() => setStatusPageVisibility(false)}
+          banner={bannerImage ?? coverImage.extraLarge}
+          key={'status'}
+          idMal={idMal}
+          id={id}
+          title={title.romaji}
+        />
+      </Modal>
       <AnimatedHeader
         onPress={() => navigation.goBack()}
         opacity={opacity}
         color={theme.dark ? theme.colors.card : theme.colors.primary}
         headerColor={theme.colors.text}
       />
-      <ViewPager style={{height, width, marginTop: -height * 0.13}}>
-        <View style={{flex: 1, marginBottom: height * 0.095}} key={'main'}>
-          {PageOne()}
-        </View>
-        <StatusPage
+      <View
+        style={{
+          height,
+          width,
+          marginTop: -height * 0.13,
+        }}>
+        {PageOne()}
+      </View>
+      {/* <StatusPage
           banner={bannerImage ?? coverImage.extraLarge}
           key={'status'}
           anilistEntry={mappedEntry}
           idMal={idMal}
           id={id}
           title={title.romaji}
-        />
-      </ViewPager>
+        /> */}
     </>
   );
 };

@@ -1,4 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LayoutAnimation } from 'react-native';
 import create from 'zustand';
+import {useSettingsStore} from '.';
 import {SimklEpisodes} from '../Models/SIMKL';
 import {MyQueueModel} from '../Models/taiyaki';
 
@@ -26,6 +29,7 @@ type QueueEvents = {
 export const useQueueStore = create<QueueEvents>((set, get) => ({
   myQueue: {},
   addAllToQueue: async (value) => {
+    const canSaveQueue = useSettingsStore.getState().settings.queue.saveQueue;
     const {myQueue} = get();
     for (let valve in value) {
       const {key, data} = value[valve];
@@ -78,11 +82,12 @@ export const useQueueStore = create<QueueEvents>((set, get) => ({
       //set((state) => ({...state, queueLength: Object.values(get()?.myQueue ?? {}).length}))
       //   const canSaveQueue =
       //     useSettingsStore.getState().settings.queue?.saveMyQueue ?? true;
-      //   if (canSaveQueue)
-      //     await AsyncStorage.setItem('my_queue_storage', JSON.stringify(myQueue));
+      if (canSaveQueue)
+        await AsyncStorage.setItem('my_queue_storage', JSON.stringify(myQueue));
     }
   },
   addToQueue: async (value) => {
+    const canSaveQueue = useSettingsStore.getState().settings.queue.saveQueue;
     const {myQueue} = get();
     const {key, data} = value;
     function _checkInList(): boolean {
@@ -129,13 +134,16 @@ export const useQueueStore = create<QueueEvents>((set, get) => ({
     } else set((state) => ({...state, queueLength: 0}));
     // const canSaveQueue =
     //   useSettingsStore.getState().settings.queue?.saveMyQueue ?? true;
-    // if (canSaveQueue)
-    //   await AsyncStorage.setItem(
-    //     'my_queue_storage',
-    //     JSON.stringify(get().myQueue),
-    //   );
+    if (canSaveQueue)
+      await AsyncStorage.setItem(
+        'my_queue_storage',
+        JSON.stringify(get().myQueue),
+      );
   },
-  emptyList: () => set((state) => ({...state, myQueue: {}, queueLength: 0})),
+  emptyList: async () => {
+    set((state) => ({...state, myQueue: {}, queueLength: 0}))
+    await AsyncStorage.removeItem('my_queue_storage')
+  },
   queueLength: 0,
   addDirectQueue: (value) =>
     set((state) => ({
@@ -159,11 +167,18 @@ export const useUpNextStore = create<UpNextState>((set, get) => ({
   addAll: (episodes) => set((state) => ({...state, upNext: episodes})),
   removeAll: () => set((state) => ({...state, upNext: []})),
 
-  removeSingle: (number) => {
-    const future = number + 1;
-    if (future >= get().upNext[0].episode)
-      return set((state) => ({...state, upNext: []}));
-    const upNext = get().upNext.slice(future);
-    return set((state) => ({...state, upNext}));
+  removeSingle: (episodeNumber) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const next = episodeNumber + 1;
+    const upNextList = get().upNext;
+    if (next <= upNextList[upNextList.length - 1].episode) {
+      const slice = upNextList.findIndex((v) => v.episode === next);
+      set((state) => ({...state, upNext: upNextList.slice(slice)}));
+    } else set((state) => ({...state, upNext: []}));
+    // const future = number + 1;
+    // if (future >= get().upNext[0].episode)
+    //   return set((state) => ({...state, upNext: []}));
+    // const upNext = get().upNext.slice(future);
+    // return set((state) => ({...state, upNext}));
   },
 }));

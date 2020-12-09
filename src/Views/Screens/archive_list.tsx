@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import {useNavigation} from '@react-navigation/native';
 import React, {FC, useCallback, useEffect, useState} from 'react';
 import {
@@ -23,6 +24,7 @@ import {
   Divider,
   ThemedButton,
   ThemedCard,
+  ThemedSurface,
   ThemedText,
 } from '../Components';
 
@@ -98,7 +100,7 @@ export const ArchiveListScreen = () => {
     return () => {
       //mergeItem(JSON.stringify(mySources));
     };
-  }, [_findMyLists]);
+  }, []);
 
   useEffect(() => {
     async function getSource() {
@@ -246,14 +248,16 @@ export const ArchiveListScreen = () => {
     if (synced && synced.version !== item.version) needsUpdate = true;
     return (
       <ThemedCard style={{margin: 8}}>
-        <View style={{flexDirection: 'row', flex: 1}}>
-          {item.imageURL && item.imageURL.length > 0 ? (
-            <Avatars style={{alignSelf: 'flex-end'}} url={item.imageURL} />
-          ) : (
-            <ThemedText style={{alignSelf: 'flex-end'}}>item.name</ThemedText>
-          )}
-        </View>
-        <ThemedText>{item.name}</ThemedText>
+        <View style={{flexDirection: 'row', flex: 1}}></View>
+        <ThemedText
+          style={{
+            fontSize: 21,
+            fontWeight: '600',
+            margin: 8,
+            textAlign: 'center',
+          }}>
+          {item.name}
+        </ThemedText>
         {dynamicSources.find((i) => i.id === item.requiredOptions?.id) ? (
           <ThemedText style={{marginVertical: 4, color: 'grey'}}>
             Logged in as:
@@ -265,11 +269,12 @@ export const ArchiveListScreen = () => {
         ) : null}
         {item.description ? <ThemedText>{item.description}</ThemedText> : null}
         <Divider />
-        <ThemedText style={{}}>Version {item.version}</ThemedText>
+        <ThemedText style={{margin: width * 0.03, textAlign: 'center'}}>
+          Version {item.version}
+        </ThemedText>
         <View
           style={{
             flex: 1,
-
             alignSelf: 'flex-end',
             flexDirection: 'row',
             justifyContent: 'flex-end',
@@ -282,7 +287,7 @@ export const ArchiveListScreen = () => {
           ) : null}
           <ThemedButton
             style={{transform: [{scale: 0.9}]}}
-            color={needsUpdate || !synced ? 'orange' : theme.colors.primary}
+            color={needsUpdate || !synced ? 'orange' : theme.colors.accent}
             onPress={() => _saveSource(item, needsUpdate)}
             title={needsUpdate ? 'Update' : synced ? 'Remove' : 'Install'}
           />
@@ -361,7 +366,7 @@ export const ArchiveListScreen = () => {
   //   }
 
   return (
-    <View style={{width: '100%', height: '100%'}}>
+    <ThemedSurface style={{flex: 1}}>
       <Modal
         visible={modalUpdateVisible}
         onDismiss={() => setModalUpdateVisible(false)}
@@ -399,9 +404,8 @@ export const ArchiveListScreen = () => {
           <ActivityIndicator style={{alignSelf: 'center'}} />
         </View>
       ) : (
-        <View>
+        <View style={{flex: 1}}>
           <SectionList
-            style={{height: '86%', width: '100%'}}
             sections={_filteredArchives()}
             showsVerticalScrollIndicator={false}
             keyExtractor={(item) => item.name}
@@ -424,7 +428,7 @@ export const ArchiveListScreen = () => {
           />
         </View>
       )}
-    </View>
+    </ThemedSurface>
   );
 };
 
@@ -471,7 +475,7 @@ const UpdateList: FC<UpdateListProps> = (props) => {
 
   useEffect(() => {
     searchUpdates();
-  }, [searchUpdates]);
+  }, []);
 
   useEffect(() => {
     setMessage(`Items requiring an update: ${listOfUpdates.length} item(s)`);

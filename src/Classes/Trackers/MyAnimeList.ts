@@ -1,10 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {MyAnimeListLoginModel} from '../../Models/MyAnimeList/basic';
-import {TaiyakiUserModel, UserModel} from '../../Models/taiyaki';
+import {
+  TaiyakiUserModel,
+  UserModel,
+  WatchingStatus,
+} from '../../Models/taiyaki';
 import {TrackerBase} from './Trackers';
 import qs from 'qs';
-import {MALUserModel} from '../../Models/MyAnimeList';
+import {MALListStatus, MALUserModel} from '../../Models/MyAnimeList';
 import {useUserProfiles} from '../../Stores';
+import {MapWatchingStatusToMAL} from '../../Util';
 
 type TokenResponse = {
   token_type: 'Bearer';
@@ -14,13 +19,68 @@ type TokenResponse = {
 };
 
 export class MyAnimeList implements TrackerBase {
+  async updateStatus(
+    id: number,
+    episodesWatched: number,
+    status: WatchingStatus,
+    score?: number,
+    startedAt?: Date,
+    completedAt?: Date,
+  ): Promise<void> {
+    //NOTE: MyAnimeList currently does not let users update start/end date through the api
+    const token = (await this.getData()).bearerToken;
+    const query: Record<string, string | number> = {
+      status: MapWatchingStatusToMAL.get(status) ?? 'plan_to_watch',
+      num_watched_episodes: episodesWatched,
+    };
+
+    //Convert 75 -> 7.5, 82 -> 8.2, 100 -> 10, etc...
+    if (score) query.score = score * 0.1;
+    if (startedAt) {
+      if (isNaN(startedAt.getTime())) return;
+      const dateString = startedAt.toLocaleDateString([], {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+      });
+      const day = new Date(dateString).toLocaleDateString([], {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+      const splits = day.split('/');
+      const formattedDate = splits[2] + '-' + splits[0] + '-' + splits[1];
+      query.start_date = formattedDate.toString();
+    }
+    if (completedAt) {
+      if (isNaN(completedAt.getTime())) return;
+      const dateString = completedAt.toLocaleDateString([], {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+      });
+      const day = dateString.split('/');
+      const formattedDate = day[2] + '-' + day[0] + '-' + day[1];
+      query.end_date = formattedDate;
+    }
+
+    const headers = {
+      Authorization: 'Bearer ' + token,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
+
+    await fetch(`https://api.myanimelist.net/v2/anime/${id}/my_list_status`, {
+      method: 'PUT',
+      headers,
+      body: qs.stringify(query),
+    });
+  }
   async getData(): Promise<TaiyakiUserModel> {
     const file = await AsyncStorage.getItem('auth');
     if (file) {
       const json = JSON.parse(file) as TaiyakiUserModel[];
       const user = json.find((i) => i.source === 'MyAnimeList');
       const tokenWatch = await this.tokenWatch();
-      console.log(tokenWatch);
       user!.bearerToken = tokenWatch;
       return user!;
     } else
@@ -47,9 +107,6 @@ export class MyAnimeList implements TrackerBase {
       .getState()
       .removeProfile('MyAnimeList')
       .then(() => useUserProfiles.getState().addToProfile(profileStore!));
-  }
-  updateStatus(): Promise<void> {
-    throw new Error('Method not implemented.');
   }
 
   async tradeCodeForBearer(
@@ -94,7 +151,7 @@ export class MyAnimeList implements TrackerBase {
     } else return model.bearerToken;
   }
 
-  async revalidateToken(
+  private async revalidateToken(
     refreshToken: string,
     profile: Partial<UserModel>,
   ): Promise<string> {

@@ -57,6 +57,15 @@ export type AnilistPagedData = {
   };
   type: AnilistRequestTypes;
 };
+export type AnilistPagedUserRecData = {
+  data: {
+    Page: {
+      pageInfo: PageInfo;
+      recommendations: {media: Media}[];
+    };
+  };
+  type: AnilistRequestTypes;
+};
 
 export type PageInfo = {
   hasNextPage: boolean;
@@ -100,7 +109,6 @@ export type Media = {
   };
   startDate: AnilistDates;
   endDate: AnilistDates;
-  mediaListEntry: AnilistMediaListEntry;
   mappedEntry: StatusInfo;
 };
 
@@ -130,8 +138,26 @@ export type AnilistViewerModel = {
       name: string;
       id: number;
       avatar: {large: string};
+      bannerImage?: string;
     };
   };
+};
+
+export type AnilistMediaListCollectionModel = {
+  data: {
+    MediaListCollection: {
+      lists: AnilistMediaListCollectionEntriesModel[];
+    };
+  };
+};
+
+export type AnilistMediaListCollectionEntriesModel = {
+  entries: {
+    media: Media;
+    progress: number;
+    score: number;
+    status: string;
+  }[];
 };
 
 export type AnilistCharacterPageEdgeModel = {
@@ -143,6 +169,7 @@ export type AnilistRecommendationPageEdgeModel = {
   node: {
     mediaRecommendation: Media;
   };
+  type: AnilistRequestTypes;
 };
 
 export type AnilistRecommendationPageModel = {
@@ -175,3 +202,7 @@ export type AnilistSearchModel = {
     };
   };
 };
+
+export type AnilistUserModel = {
+
+ }

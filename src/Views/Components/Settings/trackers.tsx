@@ -25,16 +25,20 @@ import {AnilistLoginModel} from '../../../Models/Anilist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {AnilistBase, MyAnimeList} from '../../../Classes/Trackers';
 import {MyAnimeListLoginModel} from '../../../Models/MyAnimeList';
+import {SIMKLLoginConfigModel} from '../../../Models/SIMKL';
+import {SIMKL} from '../../../Classes/Trackers/SIMKL';
 
 const {height, width} = Dimensions.get('window');
 
 export const TrackerPage = () => {
   return (
-    <ScrollView style={styles.tracker.view}>
-      <Card source={'Anilist'} />
-      <Card source={'MyAnimeList'} />
-      <Card source={'SIMKL'} />
-    </ScrollView>
+    <ThemedSurface style={styles.tracker.view}>
+      <ScrollView>
+        <Card source={'Anilist'} />
+        <Card source={'MyAnimeList'} />
+        <Card source={'SIMKL'} />
+      </ScrollView>
+    </ThemedSurface>
   );
 };
 
@@ -60,6 +64,9 @@ const Card: FC<{
         break;
       case 'MyAnimeList':
         loginConfig = MyAnimeListLoginModel;
+        break;
+      case 'SIMKL':
+        loginConfig = SIMKLLoginConfigModel;
         break;
       default:
         return;
@@ -121,6 +128,20 @@ const Card: FC<{
                       new MyAnimeList().fetchProfile(),
                     );
                   });
+                return;
+              } else if (source === 'SIMKL') {
+                const simkl = new SIMKL();
+                simkl.tradeCodeForBearer(code).then((token) => {
+                  const profile: TaiyakiUserModel = {
+                    bearerToken: token,
+                    class: new SIMKL(),
+                    profile: {},
+                    source: 'SIMKL',
+                  };
+                  addUser(profile).then((profile) => {
+                    simkl.fetchProfile(profile, true);
+                  });
+                });
                 return;
               }
             }

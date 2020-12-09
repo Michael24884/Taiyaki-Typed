@@ -8,6 +8,7 @@ export type SimklEpisodes = {
     simkl_id: number;
   };
   link: string;
+  sourceName: string;
 };
 
 export type SimklIDConversionModel = {
@@ -15,5 +16,35 @@ export type SimklIDConversionModel = {
   ids: {
     simkl: number;
     slug: string;
+  };
+};
+
+export type SimklUserModel = {
+  user: {
+    name: string;
+    avatar: string;
+    bio: string;
+  };
+  account: {
+    id: number;
+  };
+};
+
+export type SimklUserListModel = {
+  anime: {
+    status: string;
+    user_rating: number;
+    watched_episodes_count: number;
+    total_episodes_count: number;
+    show: SimklMediaModel;
+  }[];
+};
+
+export type SimklMediaModel = {
+  title: string;
+  poster: string;
+  ids: {
+    simkl: number;
+    mal: string;
   };
 };

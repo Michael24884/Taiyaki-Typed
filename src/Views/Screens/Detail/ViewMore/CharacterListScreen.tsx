@@ -12,7 +12,7 @@ import {
   AnilistCharacterPageEdgeModel,
   AnilistCharacterPageModel,
 } from '../../../../Models/Anilist';
-import {ThemedText} from '../../../Components';
+import {ThemedSurface, ThemedText} from '../../../Components';
 import {CharacterCard} from '../../../Components/list_cards';
 
 const {height, width} = Dimensions.get('window');
@@ -49,24 +49,26 @@ const CharacterListScreen: FC<Props> = (props) => {
   );
 
   return (
-    <FlatList
-      data={list}
-      renderItem={_renderItem}
-      keyExtractor={(item) => item.node.name.full}
-      numColumns={3}
-      onEndReachedThreshold={0.2}
-      onEndReached={() => fetchMore()}
-      ListFooterComponent={
-        canFetchMore ? (
-          <View style={styles.cards.footerView}>
-            <ActivityIndicator />
-            <ThemedText style={styles.cards.footerText}>
-              Fetching More...
-            </ThemedText>
-          </View>
-        ) : null
-      }
-    />
+    <ThemedSurface>
+      <FlatList
+        data={list}
+        renderItem={_renderItem}
+        keyExtractor={(item) => item.node.name.full}
+        numColumns={3}
+        onEndReachedThreshold={0.2}
+        onEndReached={() => fetchMore()}
+        ListFooterComponent={
+          canFetchMore ? (
+            <View style={styles.cards.footerView}>
+              <ActivityIndicator />
+              <ThemedText style={styles.cards.footerText}>
+                Fetching More...
+              </ThemedText>
+            </View>
+          ) : null
+        }
+      />
+    </ThemedSurface>
   );
 };
 

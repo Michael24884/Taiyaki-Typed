@@ -27,7 +27,7 @@ export const ThemedText: FC<TextProps> = (props) => {
   return (
     <Text
       adjustsFontSizeToFit={shouldShrink}
-      minimumFontScale={0.8}
+      minimumFontScale={0.62}
       numberOfLines={numberOfLines}
       style={[{color}, style, {fontFamily: 'Poppins'}]}>
       {children}
@@ -36,7 +36,7 @@ export const ThemedText: FC<TextProps> = (props) => {
 };
 
 export const Divider: FC<{color?: string}> = (props) => {
-  return <View style={{backgroundColor: props.color ?? 'grey', height: 1}} />;
+  return <View style={{backgroundColor: props.color ?? 'grey', height: 0.4}} />;
 };
 
 export const ThemedButton: FC<{
@@ -97,13 +97,13 @@ interface ViewProps {
 
 export const ThemedSurface: FC<ViewProps> = (props) => {
   const {style, children} = props;
-  const backgroundColor = useTheme((_) => _.theme.colors.surface);
+  const backgroundColor = useTheme((_) => _.theme.colors.backgroundColor);
   return <View style={[{backgroundColor}, style]}>{children}</View>;
 };
 
 export const ThemedCard: FC<ViewProps> = (props) => {
   const {style, children} = props;
-  const backgroundColor = useTheme((_) => _.theme.colors.card);
+  const backgroundColor = useTheme((_) => _.theme.colors.backgroundColor);
   return (
     <View
       style={[

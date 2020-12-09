@@ -93,12 +93,15 @@ export const MapWatchingStatusToNative = new Map<
   ['watching', 'Watching'],
   ['CURRENT', 'Watching'],
   ['plan_to_watch', 'Planning'],
+  ['plantowatch', 'Planning'],
   ['PLANNING', 'Planning'],
   ['completed', 'Completed'],
   ['COMPLETED', 'Completed'],
   ['on_hold', 'Paused'],
+  ['hold', 'Paused'],
   ['PAUSED', 'Paused'],
   ['dropped', 'Dropped'],
+  ['notinteresting', 'Dropped'],
   ['DROPPED', 'Dropped'],
   [undefined, 'Add to List'],
 ]);
@@ -109,4 +112,18 @@ export const MapWatchingStatusToAnilist = new Map<WatchingStatus, string>([
   ['Paused', 'PAUSED'],
   ['Dropped', 'DROPPED'],
   ['Completed', 'COMPLETED'],
+]);
+export const MapWatchingStatusToSimkl = new Map<WatchingStatus, string>([
+  ['Watching', 'watching'],
+  ['Planning', 'plantowatch'],
+  ['Paused', 'hold'],
+  ['Dropped', 'notinteresting'],
+  ['Completed', 'completed'],
+]);
+export const MapWatchingStatusToMAL = new Map<WatchingStatus, string>([
+  ['Watching', 'watching'],
+  ['Planning', 'plan_to_watch'],
+  ['Paused', 'on_hold'],
+  ['Dropped', 'dropped'],
+  ['Completed', 'completed'],
 ]);

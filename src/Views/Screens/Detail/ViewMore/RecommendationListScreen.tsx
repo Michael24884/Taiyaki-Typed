@@ -12,7 +12,7 @@ import {
   AnilistRecommendationPageEdgeModel,
   AnilistRecommendationPageModel,
 } from '../../../../Models/Anilist';
-import {ThemedText} from '../../../Components';
+import {ThemedSurface, ThemedText} from '../../../Components';
 import {RecCards} from '../../../Components/list_cards';
 
 const {height, width} = Dimensions.get('window');
@@ -56,23 +56,25 @@ const RecommendationList: FC<Props> = (props) => {
   );
 
   return (
-    <FlatList
-      data={list}
-      renderItem={_renderRec}
-      keyExtractor={(item) => item.node.mediaRecommendation.id.toString()}
-      onEndReachedThreshold={0.25}
-      onEndReached={() => fetchMore()}
-      ListFooterComponent={
-        canFetchMore ? (
-          <View style={styles.cards.footerView}>
-            <ActivityIndicator />
-            <ThemedText style={styles.cards.footerText}>
-              Fetching More...
-            </ThemedText>
-          </View>
-        ) : null
-      }
-    />
+    <ThemedSurface>
+      <FlatList
+        data={list}
+        renderItem={_renderRec}
+        keyExtractor={(item) => item.node.mediaRecommendation.id.toString()}
+        onEndReachedThreshold={0.25}
+        onEndReached={() => fetchMore()}
+        ListFooterComponent={
+          canFetchMore ? (
+            <View style={styles.cards.footerView}>
+              <ActivityIndicator />
+              <ThemedText style={styles.cards.footerText}>
+                Fetching More...
+              </ThemedText>
+            </View>
+          ) : null
+        }
+      />
+    </ThemedSurface>
   );
 };
 

@@ -1,15 +1,15 @@
 import {TaiyakiUserModel, WatchingStatus} from '../../Models/taiyaki';
+import {StatusInfo} from '../../Views/Components';
 
 export abstract class TrackerBase {
   abstract getData(): Promise<TaiyakiUserModel>;
-  abstract fetchProfile(): Promise<void>;
+  abstract fetchProfile(userProfile?: TaiyakiUserModel): Promise<void>;
   abstract updateStatus(
     id: number,
     episodesWatched: number,
     status: WatchingStatus,
-    startedAt: Date,
-    completedAt: Date,
-    totalEpisodes: number,
     score?: number,
-  ): Promise<void>;
+    startedAt?: Date,
+    completedAt?: Date,
+  ): Promise<void | StatusInfo>;
 }

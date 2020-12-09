@@ -22,7 +22,9 @@ export type AnilistRequestTypes =
   | 'Seasonal'
   | 'Character'
   | 'Recommendations'
-  | 'Search';
+  | 'Search'
+  | 'Sync'
+  | 'User Rec';
 
 export const AnilistPopularGraph = (index?: number): string => `
 query {
@@ -96,7 +98,7 @@ query {
 
 export const AnilistDetailedGraph = (id: number, idMal?: string): string => `
 query {
-  Media(${idMal ? 'idMal: ' + idMal : 'id: ' + id}) {
+  Media(${idMal ? 'idMal: ' + idMal : 'id: ' + id}, type: ANIME) {
       coverImage{extraLarge}
       popularity
       format
@@ -115,21 +117,6 @@ query {
       description
       hashtag
       genres
-      mediaListEntry{
-        progress
-        score
-        status
-        startedAt {
-          year
-          month
-          day
-        }
-        completedAt {
-          year
-          month
-          day
-        }
-      }
       nextAiringEpisode {
         episode
         timeUntilAiring
@@ -175,29 +162,39 @@ query{
     id
     name
     avatar {large}
+    bannerImage
   }
 }
 `;
 
 export const AnilistUpdateMediaGraph = (
   id: number,
-  score: number,
   progress: number,
-  startedAt: string,
-  completedAt: string,
   status: string,
-): string => `
-mutation {
-  SaveMediaListEntry(id:${id}, status: ${status} scoreRaw:${score}, progress:${progress}, startedAt:${startedAt}, completedAt: ${completedAt}) {
-   id
-   progress
-   score
-   startedAt{month, year, day}
-   completedAt{month, year, day}
-   status
- }
- }
-`;
+  score?: number,
+  startedAt?: string,
+  completedAt?: string,
+): string => {
+  let queryString = '';
+  if (score) queryString += `scoreRaw: ${score}, `;
+  if (startedAt) queryString += `startedAt: ${startedAt}, `;
+  if (completedAt) queryString += `completedAt: ${completedAt}, `;
+  return `
+  mutation {
+    SaveMediaListEntry(mediaId:${id}, status: ${status}, progress:${progress}, ${queryString}) {
+     id
+     progress
+     score
+     startedAt{month, year, day}
+     completedAt{month, year, day}
+     status
+     media{
+       episodes
+     }
+   }
+   }
+  `;
+};
 
 export const AnilistCharacterPageGraph = (
   id: number,
@@ -262,6 +259,9 @@ export const AnilistSearchGraph = (
   source?: AnilistSourceTypes,
 ): string => {
   let queryString: string = '';
+  if (query) {
+    queryString += `search: "${query}", `;
+  }
   if (genres) {
     queryString += `genre_in: [${genres.map((i) => `"${i}"`)}], `;
   }
@@ -291,7 +291,7 @@ export const AnilistSearchGraph = (
         hasNextPage
         currentPage
       }
-      media(search: "${query}", isAdult: false, type:ANIME, ${queryString}){
+      media(isAdult: false, type:ANIME, ${queryString}){
         title{romaji}
         id
         coverImage{extraLarge}
@@ -301,3 +301,67 @@ export const AnilistSearchGraph = (
   }
   `;
 };
+
+export const AnilistRecommendationUserGraph: string = `
+query {
+  Page(perPage:5) {
+    pageInfo {
+      hasNextPage
+      currentPage
+    }
+   recommendations(onList:true, sort:ID_DESC) {
+     media{
+       title {
+         romaji
+       }
+       coverImage{extraLarge}
+       id
+       bannerImage
+     }
+   }
+ }
+ }`;
+
+export const AnilistMediaListGrapqh = (id: number): string => `
+query {
+  Media(id: ${id}) {
+    episodes
+    mediaListEntry{
+      progress
+      score
+      status
+      startedAt {
+        year
+        month
+        day
+      }
+      completedAt {
+        year
+        month
+        day
+      }
+    }
+  }
+}
+`;
+
+export const AnilistMediaListCollectionGraph = (userID: number): string => `
+query{   
+  MediaListCollection(userId:${userID} type:ANIME, sort:UPDATED_TIME_DESC) {
+    lists{
+      entries{
+        media{
+          title{romaji}
+          coverImage{extraLarge}
+          id
+          idMal
+          episodes
+        }
+        progress
+        score
+        status
+      }
+    }
+    }
+  }
+`;

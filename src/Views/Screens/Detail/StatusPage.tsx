@@ -7,22 +7,21 @@ import {
   StyleSheet,
   View,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-dynamic-vector-icons';
 import {StretchyScrollView} from 'react-native-stretchy';
-import {useMalRequests} from '../../../Hooks';
+import {useAnilistRequest, useMalRequests} from '../../../Hooks';
+import {AnilistMediaListGrapqh} from '../../../Models/Anilist';
 import {MALDetailed} from '../../../Models/MyAnimeList';
-import {
-  DetailedDatabaseIDSModel,
-  TrackingServiceTypes,
-} from '../../../Models/taiyaki';
+import {TrackingServiceTypes} from '../../../Models/taiyaki';
 
-import {useTheme, useUserProfiles} from '../../../Stores';
+import {useSimklStore, useTheme, useUserProfiles} from '../../../Stores';
 import {
-  DangoImage,
   StatusInfo,
   StatusTiles,
   ThemedButton,
+  ThemedSurface,
   ThemedText,
 } from '../../Components';
 import {UpdatingAnimeStatusPage} from '../../Components/detailedParts';
@@ -30,42 +29,67 @@ import {UpdatingAnimeStatusPage} from '../../Components/detailedParts';
 const {height, width} = Dimensions.get('window');
 
 interface Props {
+  totalEpisode: number;
   banner: string;
-  anilistEntry?: StatusInfo;
+  onClose: () => void;
   title: string;
   id: number;
   idMal?: string;
 }
 const StatusPage: FC<Props> = (props) => {
   const theme = useTheme((_) => _.theme);
-  const {banner, anilistEntry, idMal, id, title} = props;
+  const {banner, idMal, id, totalEpisode, title, onClose} = props;
   const profiles = useUserProfiles((_) => _.profiles);
   const controller = useRef(new Animated.Value(0)).current;
   const [open, setOpen] = useState<boolean>(false);
+  const [tracker, setTracker] = useState<TrackingServiceTypes>();
 
   const {
-    query: {data: MyAnimeListData},
+    query: {
+      data: AnilistData,
+      refetch: RefetchAnilist,
+      isLoading: AnilistLoading,
+    },
+    controller: AnilistController,
+  } = useAnilistRequest<StatusInfo>('Sync' + id, AnilistMediaListGrapqh(id));
+
+  const {
+    query: {data: MyAnimeListData, isLoading: MalLoading, refetch: RefetchMAL},
     controller: MalController,
   } = useMalRequests<MALDetailed>(
     'mal' + idMal,
-    '/anime/' + idMal + '?fields={my_list_status},num_episodes',
+    '/anime/' +
+      idMal +
+      '?fields={my_list_status{start_date,end_date}},num_episodes',
   );
+
+  //WARNING: UNSAFE
+  const simklData = useSimklStore((_) => _.getAnime)(idMal!);
+
   useEffect(() => {
     return () => {
       MalController.abort();
+      AnilistController.abort();
     };
-  }, [MalController]);
+  }, []);
 
   const _renderMyStatus = (
     tracker: TrackingServiceTypes,
+    onManualEdit: () => void,
     item?: StatusInfo,
   ) => {
-    return <StatusTiles data={item} tracker={tracker} />;
+    return (
+      <StatusTiles data={item} tracker={tracker} onManualEdit={onManualEdit} />
+    );
   };
 
   useEffect(() => {
     _Animate();
   }, [open]);
+
+  useEffect(() => {
+    if (tracker) setOpen(true);
+  }, [tracker]);
 
   const _Animate = () => {
     const Animate: Animated.TimingAnimationConfig = {
@@ -77,16 +101,10 @@ const StatusPage: FC<Props> = (props) => {
     Animated.timing(controller, Animate).start();
   };
 
-  const animatedImageStyle = controller.interpolate({
-    inputRange: [0, 1],
-    outputRange: [height * 0.3, height],
-  });
-
   const profileRevealer = () => {
     if (profiles.length === 0)
       return (
-        <View
-          style={{justifyContent: 'center', alignItems: 'center', flex: 1 / 2}}>
+        <ThemedSurface style={{justifyContent: 'center', alignItems: 'center'}}>
           <Icon name={'error'} type={'MaterialIcons'} size={45} color={'red'} />
           <ThemedText
             style={{
@@ -97,20 +115,55 @@ const StatusPage: FC<Props> = (props) => {
             }}>
             You're not signed in to any tracking service
           </ThemedText>
-        </View>
+        </ThemedSurface>
       );
     return (
-      <View>
-        {profiles.find((i) => i.source === 'Anilist')
-          ? _renderMyStatus('Anilist', anilistEntry)
+      <ThemedSurface style={{justifyContent: 'space-between'}}>
+        {profiles.find((i) => i.source === 'Anilist') ? (
+          AnilistLoading ? (
+            <View style={styles.loadingStatus}>
+              <ActivityIndicator />
+            </View>
+          ) : (
+            _renderMyStatus(
+              'Anilist',
+              () => {
+                setTracker('Anilist');
+              },
+              AnilistData,
+            )
+          )
+        ) : null}
+        {profiles.find((i) => i.source === 'MyAnimeList') ? (
+          MalLoading ? (
+            <View style={styles.loadingStatus}>
+              <ActivityIndicator />
+            </View>
+          ) : (
+            _renderMyStatus(
+              'MyAnimeList',
+              () => {
+                setTracker('MyAnimeList');
+              },
+              MyAnimeListData?.mappedEntry,
+            )
+          )
+        ) : null}
+        {profiles.find((i) => i.source === 'SIMKL')
+          ? _renderMyStatus(
+              'SIMKL',
+              () => {
+                setTracker('SIMKL');
+              },
+              simklData,
+            )
           : null}
-        {profiles.find((i) => i.source === 'MyAnimeList')
-          ? _renderMyStatus('MyAnimeList', MyAnimeListData?.mappedEntry)
-          : null}
+
         <View
           style={{
             backgroundColor: theme.colors.backgroundColor,
-            marginBottom: 10,
+            alignSelf: 'center',
+            marginBottom: height * 0.05,
           }}>
           <ThemedText
             style={{
@@ -122,17 +175,22 @@ const StatusPage: FC<Props> = (props) => {
             This will update all your sources
           </ThemedText>
           <ThemedButton
-            onPress={() => setOpen((open) => !open)}
+            onPress={() => setOpen(true)}
             title={'Update'}
             style={{alignSelf: 'center'}}
           />
+          <ThemedButton
+            onPress={onClose}
+            title={'Close'}
+            style={{alignSelf: 'center'}}
+          />
         </View>
-      </View>
+      </ThemedSurface>
     );
   };
 
   return (
-    <View style={{flex: 1}}>
+    <ThemedSurface style={{flex: 1}}>
       <Modal
         visible={open}
         animationType={'slide'}
@@ -141,22 +199,74 @@ const StatusPage: FC<Props> = (props) => {
         onRequestClose={() => setOpen(false)}>
         <View style={{flex: 1}}>
           <UpdatingAnimeStatusPage
-            ids={{anilist: id, myanimelist: Number(idMal)}}
+            totalEpisodes={totalEpisode}
+            tracker={tracker}
+            ids={{anilist: id, myanimelist: idMal}}
+            update={() => {
+              RefetchAnilist();
+              RefetchMAL();
+              setTracker(undefined);
+              setOpen(false);
+            }}
+            initialData={
+              !tracker
+                ? AnilistData ??
+                  MyAnimeListData?.mappedEntry ?? {
+                    status: 'Add to List',
+                    progress: 0,
+                    totalEpisodes: 0,
+                  }
+                : tracker === 'Anilist'
+                ? AnilistData ?? {
+                    status: 'Add to List',
+                    progress: 0,
+                    totalEpisodes: 0,
+                  }
+                : tracker === 'MyAnimeList'
+                ? MyAnimeListData?.mappedEntry ?? {
+                    status: 'Add to List',
+                    progress: 0,
+                    totalEpisodes: 0,
+                  }
+                : simklData
+            }
+            dismiss={() => {
+              setTracker(undefined);
+              setOpen(false);
+            }}
           />
         </View>
       </Modal>
       <StretchyScrollView
         image={{uri: banner}}
-        imageHeight={height * 0.3}
+        imageHeight={height * 0.25}
+        imageOverlay={
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 8,
+            }}>
+            <ThemedText
+              style={{
+                color: 'white',
+                fontSize: 18,
+                fontWeight: '600',
+                textAlign: 'center',
+              }}>
+              {title}
+            </ThemedText>
+          </View>
+        }
         scrollEnabled={profiles.length > 0 && !open}
         style={{
-          flex: 1,
-          marginBottom: height * 0.1,
           backgroundColor: theme.colors.backgroundColor,
         }}>
         {profileRevealer()}
       </StretchyScrollView>
-    </View>
+    </ThemedSurface>
   );
 };
 
@@ -194,6 +304,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: height * 0.15,
     textAlign: 'center',
+  },
+  loadingStatus: {
+    height: height * 0.15,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

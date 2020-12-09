@@ -22,7 +22,7 @@ const {height, width} = Dimensions.get('window');
 class TaiyakiHeader extends Component<{
   color: string;
   headerColor: string;
-  opacity: Animated.AnimatedInterpolation;
+  opacity?: Animated.AnimatedInterpolation;
   onPress: () => void;
 }> {
   shouldComponentUpdate(o) {
@@ -57,7 +57,7 @@ class TaiyakiHeader extends Component<{
               left: 0,
               right: 0,
               zIndex: 5,
-              opacity: this.props.opacity,
+              opacity: this.props.opacity ?? 1,
             },
           ]}
         />
@@ -89,8 +89,7 @@ export const SynopsisExpander: FC<{
           shadowRadius: 5,
         },
       }),
-      marginBottom:
-        (synopsis?.length ?? 0) > 85 ? height * 0.07 : height * 0.02,
+      marginBottom: height * 0.02,
     },
     subTitle: {
       fontSize: 19,
@@ -100,10 +99,9 @@ export const SynopsisExpander: FC<{
     },
     synopsis: {fontSize: 13, marginBottom: height * 0.01},
     floatingButton: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: expand ? -height * 0.052 : -height * 0.045,
+      alignSelf: 'flex-end',
+      marginRight: width * 0.03,
+      marginBottom: width * 0.03,
       justifyContent: 'center',
       alignItems: 'center',
       ...Platform.select({
@@ -118,9 +116,9 @@ export const SynopsisExpander: FC<{
     },
     button: {
       backgroundColor: theme.colors.accent,
-      width: width * 0.15,
+      width: width * 0.11,
       aspectRatio: 1 / 1,
-      borderRadius: (width * 0.18) / 2,
+      borderRadius: (width * 0.11) / 2,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -129,7 +127,7 @@ export const SynopsisExpander: FC<{
       bottom: 0,
       left: 0,
       right: 0,
-      height: height * 0.06,
+      height: height * 0.1,
       overflow: 'hidden',
       borderBottomLeftRadius: 4,
       borderBottomRightRadius: 4,
@@ -163,17 +161,16 @@ export const SynopsisExpander: FC<{
         <ThemedText style={styles.subTitle}>Synopsis</ThemedText>
         <View
           style={{
-            maxHeight: expand ? undefined : height * 0.12,
             overflow: 'hidden',
           }}>
           <TaiyakiParsedText
             color={'grey'}
             style={styles.synopsis}
-            numberOfLines={undefined}>
+            numberOfLines={expand ? undefined : 4}>
             {synopsis ?? 'No synopsis has been provided at this time '}
           </TaiyakiParsedText>
         </View>
-        {expand ? null : (synopsis?.length ?? 0) > 85 ? (
+        {/* {expand ? null : (synopsis?.length ?? 0) > 85 ? (
           <View style={styles.gradientView}>
             <LinearGradient
               style={{flex: 1}}
@@ -183,7 +180,7 @@ export const SynopsisExpander: FC<{
               ]}
             />
           </View>
-        ) : null}
+        ) : null} */}
         {(synopsis?.length ?? 0) > 85 ? (
           <View style={styles.floatingButton}>
             <TouchableOpacity
@@ -193,9 +190,9 @@ export const SynopsisExpander: FC<{
               }}>
               <View style={styles.button}>
                 <Icon
-                  name={expand ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                  name={expand ? 'arrow-upward' : 'arrow-downward'}
                   type={'MaterialIcons'}
-                  size={40}
+                  size={height * 0.03}
                   color={'white'}
                 />
               </View>

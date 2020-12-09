@@ -1,28 +1,49 @@
 /* eslint-disable react-native/no-inline-styles */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
-import React, {FC, useCallback, useEffect, useRef, useState} from 'react';
+import React, {createRef, FC, useCallback, useEffect, useState} from 'react';
 import {
   ActivityIndicator,
-  Animated,
+  Button,
   Dimensions,
-  Easing,
   StyleSheet,
   View,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  FlatList,
 } from 'react-native';
 import Icon from 'react-native-dynamic-vector-icons';
-import {FlatList, TextInput} from 'react-native-gesture-handler';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import {QueryCache} from 'react-query';
+import {StatusInfo} from '.';
 import {SourceBase} from '../../Classes/SourceBase';
+import Picker from 'react-native-picker-select';
 import {
   DetailedDatabaseIDSModel,
   TaiyakiArchiveModel,
   TaiyakiScrapedTitleModel,
+  TrackingServiceTypes,
+  WatchingStatus,
 } from '../../Models/taiyaki';
-import {useTheme} from '../../Stores';
-import {ThemedButton, ThemedText} from './base';
+import {useSettingsStore, useTheme, useUserProfiles} from '../../Stores';
+import {ThemedButton, ThemedCard, ThemedSurface, ThemedText} from './base';
 import {ListRow} from './list_rows';
+import {FlavoredButtons} from './rows';
+import {AnilistBase, MyAnimeList} from '../../Classes/Trackers';
+import {SIMKL} from '../../Classes/Trackers/SIMKL';
+import {Modalize} from 'react-native-modalize';
+import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
 
-const {height} = Dimensions.get('window');
+const {height, width} = Dimensions.get('window');
+
+const statusWatchingArray: WatchingStatus[] = [
+  'Watching',
+  'Planning',
+  'Completed',
+  'Paused',
+  'Dropped',
+];
 
 interface Props {
   route: {
@@ -42,6 +63,8 @@ const SearchBindPage: FC<Props> = (props) => {
   const [currentArchive, setCurrentArchive] = useState<TaiyakiArchiveModel>();
 
   const [results, setResults] = useState<TaiyakiScrapedTitleModel[]>([]);
+
+  const archiveRef = createRef<Modalize>();
 
   useEffect(() => {
     navigation.setOptions({title: 'Binding Anime...'});
@@ -65,7 +88,25 @@ const SearchBindPage: FC<Props> = (props) => {
     getItems();
   }, [getItems]);
 
-  if (archives.length === 0)
+  useEffect(() => {
+    if (currentArchive) _findTitles();
+  }, [currentArchive]);
+
+  const _findTitles = async () => {
+    const source = new SourceBase(currentArchive!);
+    setLoading(true);
+    source
+      .scrapeTitle(query)
+      .then((results) => {
+        setResults(results.results);
+        setLoading(results.loading);
+      })
+      .catch((error) => {
+        console.log('error', error);
+      });
+  };
+
+  if (archives.length === 0 || !currentArchive)
     return (
       <View
         style={[
@@ -92,20 +133,6 @@ const SearchBindPage: FC<Props> = (props) => {
       </View>
     );
 
-  const source = new SourceBase(archives[0]);
-  const _findTitles = async () => {
-    setLoading(true);
-    source
-      .scrapeTitle(query)
-      .then((results) => {
-        setResults(results.results);
-        setLoading(results.loading);
-      })
-      .catch((error) => {
-        console.log('error', error);
-      });
-  };
-
   const _renderItem = ({item}: {item: TaiyakiScrapedTitleModel}) => {
     return (
       <ListRow
@@ -123,15 +150,36 @@ const SearchBindPage: FC<Props> = (props) => {
               ids,
             }),
           );
-          console.log(item);
           navigation.navigate('Detail', {embedLink: item.embedLink});
         }}
       />
     );
   };
 
+  const _renderArchives = ({item}: {item: TaiyakiArchiveModel}) => {
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          archiveRef.current?.close();
+          setCurrentArchive(item);
+        }}>
+        <ThemedCard
+          style={{
+            paddingVertical: 15,
+            paddingHorizontal: 4,
+            justifyContent: 'center',
+          }}>
+          <ThemedText
+            style={{textAlign: 'center', fontSize: 18, fontWeight: '600'}}>
+            {item.name}
+          </ThemedText>
+        </ThemedCard>
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <View style={styles.bindPage.view}>
+    <ThemedSurface style={styles.bindPage.view}>
       <ThemedText style={styles.bindPage.text}>
         This page allows you to bind an anime with a third party source. If
         Taiyaki can't find an anime you can use a custom search title
@@ -149,9 +197,17 @@ const SearchBindPage: FC<Props> = (props) => {
         onChangeText={setQuery}
         onSubmitEditing={_findTitles}
       />
-      <ThemedText style={styles.bindPage.sourceName}>
-        Current source: {source.source.name}
-      </ThemedText>
+      <View style={{marginBottom: 10}}>
+        <ThemedText style={styles.bindPage.sourceName}>
+          Current source:
+        </ThemedText>
+        <Button
+          title={currentArchive.name}
+          onPress={() => {
+            archiveRef.current?.open();
+          }}
+        />
+      </View>
       {isLoading ? (
         <View
           style={[
@@ -191,31 +247,450 @@ const SearchBindPage: FC<Props> = (props) => {
           }
         />
       )}
-    </View>
+      <Modalize
+        ref={archiveRef}
+        modalHeight={height * 0.4}
+        modalStyle={{backgroundColor: theme.colors.backgroundColor}}
+        flatListProps={{
+          data: archives,
+          renderItem: _renderArchives,
+          keyExtractor: (item) => item.name,
+        }}
+      />
+    </ThemedSurface>
   );
 };
 
-export const UpdatingAnimeStatusPage: FC<{ids: DetailedDatabaseIDSModel}> = (
-  props,
-) => {
-  const {ids} = props;
-  const controller = useRef(new Animated.Value(0)).current;
+export const StatusCards: FC<{onPress: () => void}> = (props) => {
+  const settings = useSettingsStore((_) => _.settings);
 
-  const Animate: Animated.TimingAnimationConfig = {
-    toValue: 1,
-    useNativeDriver: true,
-    duration: 1250,
-    easing: Easing.inOut(Easing.ease),
+  const {onPress} = props;
+  const profiles = useUserProfiles((_) => _.profiles);
+
+  return (
+    <TouchableOpacity onPress={onPress}>
+      <ThemedCard style={styles.statusCards.view}>
+        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+          <ThemedText
+            style={[
+              styles.statusCards.title,
+              {color: settings.sync.autoSync ? 'green' : 'red'},
+            ]}>
+            {settings.sync.autoSync
+              ? 'Auto Tracking Enabled!'
+              : 'Auto Tracking Disabled'}
+          </ThemedText>
+          <Icon
+            name={settings.sync.autoSync ? 'check-circle' : 'error'}
+            color={settings.sync.autoSync ? 'green' : 'red'}
+            type={'MaterialIcons'}
+          />
+        </View>
+        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+          <ThemedText>Tap to view your status</ThemedText>
+          <ThemedText style={styles.statusCards.subTitle}>
+            On {profiles.length} source
+          </ThemedText>
+        </View>
+      </ThemedCard>
+    </TouchableOpacity>
+  );
+};
+
+export const UpdatingAnimeStatusPage: FC<{
+  totalEpisodes: number;
+  ids: {anilist: number; myanimelist?: string};
+  initialData?: StatusInfo;
+  update: (arg0: StatusInfo | undefined) => void;
+  dismiss: () => void;
+  tracker?: TrackingServiceTypes;
+}> = (props) => {
+  const {update, ids, dismiss, totalEpisodes, tracker} = props;
+  const theme = useTheme((_) => _.theme);
+  const profiles = useUserProfiles((_) => _.profiles);
+  const queryCache = new QueryCache();
+
+  const [updating, setUpdating] = useState<boolean>(false);
+  const initialData =
+    props.initialData ??
+    ({
+      progress: 0,
+      status: 'Add to List',
+      totalEpisodes: 0,
+      score: 0,
+    } as StatusInfo);
+
+  //Update properties
+  const [status, setStatus] = useState<WatchingStatus | undefined>(
+    initialData.status,
+  );
+  const [score, setScore] = useState<number>(initialData.score ?? 0);
+  const [progress, setProgress] = useState<number>(initialData.progress);
+
+  //Date Props
+  const [startedDate, setStartedDate] = useState<string | undefined>(
+    initialData.started,
+  );
+  const [completedDate, setCompletedDate] = useState<string | undefined>(
+    initialData.ended,
+  );
+
+  const [showStarted, setShowStarted] = useState<boolean>(false);
+  const [showCompleted, setShowCompleted] = useState<boolean>(false);
+
+  const _watchPills = () => {
+    return (
+      <View style={styles.updatePage.pillView}>
+        {statusWatchingArray.map((i) => (
+          <TouchableWithoutFeedback key={i} onPress={() => setStatus(i)}>
+            <View
+              key={i}
+              style={[
+                styles.updatePage.statusPills,
+                {backgroundColor: status && status === i ? 'green' : 'grey'},
+              ]}>
+              <ThemedText
+                style={{color: status && status === i ? 'white' : 'black'}}>
+                {i}
+              </ThemedText>
+            </View>
+          </TouchableWithoutFeedback>
+        ))}
+      </View>
+    );
+  };
+
+  const toDate = (value?: string): Date => {
+    if (value) {
+      return new Date(value);
+    }
+    return new Date(Date.now());
+  };
+  const dateToString = (value: Date): string => {
+    const date = value.toLocaleDateString([], {
+      month: 'numeric',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    return date;
+  };
+
+  const updateData = async (): Promise<StatusInfo | undefined> => {
+    setUpdating(true);
+    const user = profiles.map((i) => i.source);
+    if (
+      (!tracker || tracker === 'MyAnimeList') &&
+      user.includes('MyAnimeList')
+    ) {
+      queryCache.invalidateQueries('mal' + ids.myanimelist);
+      await new MyAnimeList().updateStatus(
+        Number(ids.myanimelist),
+        progress,
+        status ?? 'Planning',
+        score !== initialData.score ? score : undefined,
+        startedDate ? toDate(startedDate) : undefined,
+        completedDate ? toDate(completedDate) : undefined,
+      );
+    }
+
+    if ((!tracker || tracker === 'SIMKL') && user.includes('SIMKL')) {
+      await new SIMKL().updateStatus(
+        Number(ids.myanimelist),
+        progress,
+        status ?? 'Planning',
+        score !== initialData.score ? score : undefined,
+        startedDate ? toDate(startedDate) : undefined,
+        completedDate ? toDate(completedDate) : undefined,
+      );
+    }
+
+    if ((!tracker || tracker === 'Anilist') && user.includes('Anilist')) {
+      queryCache.invalidateQueries('Detailed' + ids.anilist.toString());
+      return await new AnilistBase().updateStatus(
+        ids.anilist,
+        progress,
+        status ?? 'Planning',
+        score !== initialData.score ? score : undefined,
+        startedDate ? toDate(startedDate) : undefined,
+        completedDate ? toDate(completedDate) : undefined,
+      );
+    }
+    setUpdating(false);
   };
 
   return (
-    <Animated.View
-      style={[styles.updatingPage.view, {backgroundColor: 'pink'}]}
-    />
+    <>
+      <ScrollView
+        style={{height, backgroundColor: theme.colors.backgroundColor}}
+        keyboardShouldPersistTaps="handled">
+        <ThemedSurface style={styles.bindPage.view}>
+          <View style={styles.updatePage.subView}>
+            <View style={styles.updatePage.subTitleView}>
+              <ThemedText style={styles.updatePage.subTitle}>Status</ThemedText>
+              <ThemedText style={styles.updatePage.subTitleDesc}>
+                {initialData.status}
+              </ThemedText>
+            </View>
+            {_watchPills()}
+          </View>
+          <View style={styles.updatePage.subView}>
+            <View style={styles.updatePage.subTitleView}>
+              <ThemedText style={styles.updatePage.subTitle}>
+                Progress
+              </ThemedText>
+              <ThemedText style={styles.updatePage.subTitleDesc}>
+                Current Episode: {initialData.progress ?? 0}
+              </ThemedText>
+            </View>
+            <View style={{alignSelf: 'center'}}>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <View style={styles.updatePage.scoreButtons}>
+                  <FlavoredButtons
+                    name={'arrow-up'}
+                    onPress={() =>
+                      setProgress((progress) => {
+                        const newProgress = progress + 1;
+                        if (initialData.totalEpisodes) {
+                          if (newProgress > initialData.totalEpisodes) {
+                            return progress;
+                          } else return newProgress;
+                        } else return newProgress;
+                      })
+                    }
+                  />
+                </View>
+                <TextInput
+                  value={progress.toString()}
+                  underlineColorAndroid={theme.colors.text}
+                  keyboardType={'number-pad'}
+                  onChangeText={(text) => setProgress(Number(text))}
+                  enablesReturnKeyAutomatically
+                  style={[
+                    styles.updatePage.progressText,
+                    {color: theme.colors.text},
+                  ]}
+                />
+                <ThemedText style={{color: 'grey'}}>
+                  out of {totalEpisodes ?? '???'}
+                </ThemedText>
+                <View style={styles.updatePage.scoreButtons}>
+                  <FlavoredButtons
+                    name={'arrow-down'}
+                    onPress={() => {
+                      setProgress((progress) => {
+                        const newProgress = progress - 1;
+                        if (newProgress >= 0) return newProgress;
+                        return 0;
+                      });
+                    }}
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.updatePage.subView}>
+            <View style={styles.updatePage.subTitleView}>
+              <ThemedText style={styles.updatePage.subTitle}>Score</ThemedText>
+              <ThemedText style={styles.updatePage.subTitleDesc}>
+                Current Score: {initialData.score ?? 'N/A'}
+              </ThemedText>
+            </View>
+            <Picker
+              value={score}
+              placeholder={{label: (score ?? 0).toString(), value: 0}}
+              style={{
+                placeholder: {
+                  fontSize: 31,
+                  fontWeight: '700',
+                  textAlign: 'center',
+                  fontFamily: 'Poppins',
+                },
+              }}
+              onValueChange={(value: number) => setScore(value)}
+              items={[...Array(100).keys()].reverse().map((i) => ({
+                label: (i + 1).toString(),
+                value: i + 1,
+              }))}
+            />
+          </View>
+
+          <View style={styles.updatePage.subView}>
+            <View style={styles.updatePage.subTitleView}>
+              <ThemedText style={styles.updatePage.subTitle}>
+                Start Date
+              </ThemedText>
+              <ThemedText style={styles.updatePage.subTitleDesc}>
+                When you watch episode 1 a start date is automatically provided
+                for you
+              </ThemedText>
+            </View>
+            <TouchableWithoutFeedback
+              onPress={() => {
+                if (!startedDate) {
+                  setStartedDate(dateToString(new Date(Date.now())));
+                }
+                setShowStarted((v) => !v);
+              }}>
+              <ThemedText
+                style={[
+                  styles.updatePage.progressText,
+                  {marginTop: height * 0.03},
+                ]}>
+                {startedDate
+                  ? new Date(startedDate).toLocaleDateString([], {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                  : 'N/A'}
+              </ThemedText>
+            </TouchableWithoutFeedback>
+            {showStarted && (
+              <DateTimePicker
+                value={toDate(startedDate)}
+                mode={'date'}
+                style={{height: height * 0.1}}
+                display={'calendar'}
+                onChange={(_, date?: Date) => {
+                  setStartedDate(dateToString(date ?? new Date(Date.now())));
+                  setShowStarted(false);
+                }}
+              />
+            )}
+          </View>
+
+          <View style={styles.updatePage.subView}>
+            <View style={styles.updatePage.subTitleView}>
+              <ThemedText style={styles.updatePage.subTitle}>
+                Completed Date
+              </ThemedText>
+              <ThemedText style={styles.updatePage.subTitleDesc}>
+                When you watch the last episode a completed date is
+                automatically provided for you
+              </ThemedText>
+            </View>
+            <TouchableWithoutFeedback
+              onPress={() => setShowCompleted((v) => !v)}>
+              <ThemedText
+                style={[
+                  styles.updatePage.progressText,
+                  {marginTop: height * 0.03},
+                ]}>
+                {completedDate
+                  ? new Date(completedDate).toLocaleDateString([], {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                  : 'N/A'}
+              </ThemedText>
+            </TouchableWithoutFeedback>
+            {showCompleted && (
+              <DateTimePicker
+                value={toDate(completedDate)}
+                mode={'date'}
+                style={{height: height * 0.1}}
+                display={'calendar'}
+                onChange={(_, date?: Date) => {
+                  setCompletedDate(dateToString(date ?? new Date(Date.now())));
+                  setShowCompleted(false);
+                }}
+              />
+            )}
+          </View>
+          <ThemedButton
+            disabled={updating}
+            color={updating ? 'green' : undefined}
+            style={{marginVertical: height * 0.04}}
+            onPress={() => updateData().then(update)}
+            title={updating ? 'Updating...' : 'Update'}
+          />
+        </ThemedSurface>
+      </ScrollView>
+      <Icon
+        name={'close'}
+        type={'MaterialIcons'}
+        color={'red'}
+        style={styles.updatePage.close}
+        size={30}
+        onPress={dismiss}
+      />
+    </>
   );
 };
 
 const styles = {
+  updatePage: StyleSheet.create({
+    scoreButtons: {
+      marginHorizontal: width * 0.1,
+    },
+    progressText: {
+      fontSize: 31,
+      fontWeight: '800',
+      marginRight: 5,
+      textAlign: 'center',
+    },
+    pillView: {
+      flexWrap: 'wrap',
+      flexDirection: 'row',
+      width: '100%',
+      justifyContent: 'center',
+    },
+    statusPills: {
+      marginHorizontal: width * 0.03,
+      marginVertical: width * 0.04,
+      backgroundColor: 'grey',
+      padding: 8,
+      borderRadius: 4,
+    },
+    close: {
+      position: 'absolute',
+      top: height * 0.01,
+      right: width * 0.01,
+    },
+    subTitle: {
+      fontSize: 19,
+      fontWeight: '700',
+      marginTop: height * 0.05,
+    },
+    subTitleDesc: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: 'grey',
+    },
+    subTitleView: {
+      marginBottom: height * 0.03,
+    },
+    subView: {
+      paddingHorizontal: width * 0.04,
+    },
+  }),
+  statusCards: StyleSheet.create({
+    view: {
+      padding: width * 0.05,
+
+      marginHorizontal: width * 0.012,
+    },
+    flex: {
+      height: '100%',
+      flex: 1 / 3,
+      flexDirection: 'row',
+    },
+    image: {
+      width: width * 0.14,
+      aspectRatio: 1 / 1,
+      borderRadius: (width * 0.15) / 2,
+    },
+    title: {
+      fontWeight: '700',
+    },
+    subTitle: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: 'grey',
+    },
+  }),
   updatingPage: StyleSheet.create({
     view: {
       flex: 1,

@@ -1,8 +1,19 @@
+/* eslint-disable react-native/no-inline-styles */
+import {useNavigation} from '@react-navigation/native';
 import React, {FC, useEffect, useRef, useState} from 'react';
-import {Dimensions, Easing, StyleSheet, View, Animated} from 'react-native';
+import {
+  Dimensions,
+  Easing,
+  StyleSheet,
+  View,
+  Animated,
+  FlatList,
+} from 'react-native';
+import {TouchableOpacity} from 'react-native-gesture-handler';
 import {TaiyakiUserModel} from '../../Models/taiyaki';
+import {useUserProfiles} from '../../Stores';
 import {useTheme} from '../../Stores/theme';
-import {ThemedText} from './base';
+import {ThemedSurface, ThemedText} from './base';
 import {Avatars} from './image';
 
 type Marker = {
@@ -13,26 +24,112 @@ type Marker = {
 
 const {height, width} = Dimensions.get('window');
 
-const marker: Marker[] = [
-  {
-    image:
-      'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20710-MMAlTvOqkQEV.jpg',
-    name: 'Dumpling24884',
-    source: 'Anilist',
-  },
-  {
-    image:
-      'https://s4.anilist.co/file/anilistcdn/character/large/b131106-0yYWidr2P00Y.png',
-    name: 'Tsukasa Yuzaki',
-    source: 'MyAnimeList',
-  },
-  {
-    image:
-      'https://s4.anilist.co/file/anilistcdn/character/large/b163011-RQ7w99tKB0ax.png',
-    name: 'Ippanjin',
-    source: 'SIMKL',
-  },
-];
+const marker: Marker[] = [];
+
+export const GroupedProfileBadges = () => {
+  const profiles = useUserProfiles((_) => _.profiles);
+
+  if (profiles.length === 0) return null;
+  return (
+    <View style={{flexDirection: 'row'}}>
+      <View>
+        {profiles.slice(0, 3).map((i, index) => (
+          <View
+            key={index.toString()}
+            style={{position: 'absolute', left: 16 * index, marginLeft: 10}}>
+            <Avatars url={i.profile.image} key={index.toString()} size={35} />
+          </View>
+        ))}
+        {profiles.length > 3 ? (
+          <View
+            key={'4'}
+            style={{position: 'absolute', left: 16 * 3, marginLeft: 10}}>
+            <Avatars url={profiles.length - 3 + '+'} key={'4'} size={35} />
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+};
+
+export const InstagramAvatars = () => {
+  const profiles = useUserProfiles((_) => _.profiles);
+  const theme = useTheme((_) => _.theme);
+  const controller = useRef(new Animated.Value(0.5)).current;
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (profiles.length > 0)
+      Animated.spring(controller, {
+        useNativeDriver: true,
+        tension: 169,
+        friction: 6,
+        velocity: 9,
+        toValue: 1,
+      }).start();
+  }, [profiles]);
+
+  if (profiles.length === 0) return null;
+
+  const _renderItem = ({
+    item,
+    index,
+  }: {
+    item: TaiyakiUserModel;
+    index: number;
+  }) => {
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          if (item.source === 'Anilist')
+            navigation.navigate('AnilistProfile', {tracker: 'Anilist'});
+          else if (item.source === 'MyAnimeList')
+            navigation.navigate('MyAnimeListProfile', {tracker: 'MyAnimeList'});
+          else navigation.navigate('SimklProfile', {tracker: 'SIMKL'});
+        }}>
+        <View
+          style={{
+            height: height * 0.14,
+            width: width * 0.25,
+            marginHorizontal: width * 0.03,
+            marginLeft: index === 0 ? width * 0.06 : undefined,
+          }}>
+          <Animated.View
+            style={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              transform: [{scale: controller}],
+            }}>
+            <Avatars
+              url={item.profile.image}
+              size={height * 0.085}
+              borderWidth={2}
+              borderColor={theme.colors.primary}
+            />
+            <ThemedText
+              numberOfLines={1}
+              shouldShrink
+              style={{textAlign: 'center', color: 'grey', marginTop: 5}}>
+              {item.source}
+            </ThemedText>
+          </Animated.View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+  return (
+    <ThemedSurface
+      style={{width: '100%', height: height * 0.15, paddingTop: 8}}>
+      <FlatList
+        horizontal
+        data={profiles}
+        showsHorizontalScrollIndicator={false}
+        renderItem={_renderItem}
+        keyExtractor={(item) => item.source}
+      />
+    </ThemedSurface>
+  );
+};
 
 export const TransitionedProfilesSmall: FC<{profiles: TaiyakiUserModel[]}> = (
   props,

@@ -1,7 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
-import React, {FC, useCallback, useState} from 'react';
+import React, {FC, useCallback, useEffect, useState} from 'react';
 import {
   Alert,
   Dimensions,
@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Icon from 'react-native-dynamic-vector-icons';
 import {SimklEpisodes} from '../../Models/SIMKL';
 import {MyQueueModel, TaiyakiArchiveModel} from '../../Models/taiyaki';
 import {useTheme} from '../../Stores';
@@ -30,15 +31,7 @@ export type QueueRefAction = {playNext: () => void};
 
 interface QueueProps {
   isPlayer?: boolean;
-  playNow?: (arg0: {
-    image: string;
-    animeTitle: string;
-    playingItem: SimklEpisodes;
-    archive: TaiyakiArchiveModel;
-    progress?: number;
-    ids: {anilist: number; myanimelist: number};
-    goBack?: () => void;
-  }) => void;
+  playNow?: (arg0: MyQueueModel) => void;
 }
 
 const MyQueueScreen: FC<QueueProps> = (props) => {
@@ -69,6 +62,34 @@ const MyQueueScreen: FC<QueueProps> = (props) => {
       setMimic(mimicConstructor());
     }, [myQueue]),
   );
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: ({tintColor}: {tintColor: string | undefined}) =>
+        queueLength > 0 ? (
+          <Icon
+            name={'trash-can'}
+            type={'MaterialCommunityIcons'}
+            color={tintColor}
+            style={{marginRight: 20}}
+            onPress={() =>
+              Alert.alert(
+                'Remove Queue?',
+                'Your queue will be removed, this cannot be undone',
+                [
+                  {text: 'Cancel'},
+                  {
+                    text: 'Remove',
+                    style: 'destructive',
+                    onPress: emptyList,
+                  },
+                ],
+              )
+            }
+          />
+        ) : null,
+    });
+  }, [queueLength]);
 
   const _renderSections = ({
     item,
@@ -119,6 +140,8 @@ const MyQueueScreen: FC<QueueProps> = (props) => {
               //       archive: item.archive,
               //       ids: {anilist: item.id.anilist, myanimelist: item.id.mal},
               //     });
+
+              navigation.push('Video', {episode: item});
             }}>
             <View
               style={{height: height * 0.3, width: '100%', marginBottom: 5}}>
@@ -172,6 +195,7 @@ const MyQueueScreen: FC<QueueProps> = (props) => {
           //     title: item.episodeTitle,
           //   };
           if (isPlayer) {
+            playNow?.call(null, item);
             // playNow?.call(null, {
             //   animeTitle: item.episode.title,
             //   archive: item.detail.source,
@@ -180,6 +204,7 @@ const MyQueueScreen: FC<QueueProps> = (props) => {
             //   image: item.originalImage,
             // });
           } else {
+            navigation.navigate('Video', {episode: item});
           }
           //     navigation.navigate('VideoPlayer', {
           //       image: item.originalImage,
@@ -218,22 +243,11 @@ const MyQueueScreen: FC<QueueProps> = (props) => {
   };
 
   return (
-    <>
+    <View style={{flex: 1, backgroundColor: theme.colors.backgroundColor}}>
       {mimic.length === 0 && !isPlayer ? (
         <EmptyScreen message={'Your queue list is empty'} hasHeader />
       ) : (
         <>
-          {isPlayer && (
-            <ThemedText
-              style={{
-                fontSize: 19,
-                fontWeight: '700',
-                marginLeft: 8,
-                marginTop: 8,
-              }}>
-              In Queue
-            </ThemedText>
-          )}
           <SectionList
             scrollEnabled={!isPlayer}
             style={[{height: '100%', width: '100%', flexGrow: 0}]}
@@ -256,7 +270,7 @@ const MyQueueScreen: FC<QueueProps> = (props) => {
           />
         </>
       )}
-    </>
+    </View>
   );
 };
 

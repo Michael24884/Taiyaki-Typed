@@ -3,6 +3,7 @@ package com.taiyaki_typed;
 import com.facebook.react.ReactActivity;
 import android.content.Intent;
 import android.content.res.Configuration; 
+import com.google.android.gms.cast.framework.CastContext;
 
 
 public class MainActivity extends ReactActivity {
@@ -15,6 +16,12 @@ public class MainActivity extends ReactActivity {
   protected String getMainComponentName() {
     return "Taiyaki_Typed";
   }
+  @Override
+  protected void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    CastContext.getSharedInstance(this);
+  }
+
    @Override
       public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);

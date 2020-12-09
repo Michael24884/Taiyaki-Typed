@@ -62,23 +62,27 @@ const MoreItemsScreen: FC<Props> = (props) => {
   );
 
   return (
-    <FlatList
-      data={list.filter((i) => i)}
-      renderItem={renderItem}
-      keyExtractor={(item) => item.id.toString()}
-      onEndReached={() => fetchMore()}
-      onEndReachedThreshold={0.25}
-      ListFooterComponent={
-        canFetchMore ? (
-          <View style={styles.cards.footerView}>
-            <ActivityIndicator />
-            <ThemedText style={styles.cards.footerText}>
-              Fetching More...
-            </ThemedText>
-          </View>
-        ) : null
-      }
-    />
+    <ThemedSurface>
+      <FlatList
+        data={list}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id.toString()}
+        onEndReached={() => {
+          fetchMore();
+        }}
+        onEndReachedThreshold={0.25}
+        ListFooterComponent={
+          canFetchMore ? (
+            <View style={styles.cards.footerView}>
+              <ActivityIndicator />
+              <ThemedText style={styles.cards.footerText}>
+                Fetching More...
+              </ThemedText>
+            </View>
+          ) : null
+        }
+      />
+    </ThemedSurface>
   );
 };
 

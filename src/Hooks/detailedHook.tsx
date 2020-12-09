@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {LayoutAnimation} from 'react-native';
 import {SourceBase} from '../Classes/SourceBase';
 import {SimklEpisodes} from '../Models/SIMKL';
@@ -23,9 +23,10 @@ export function useDetailedHook(
   } = useSimklRequests<SimklEpisodes[]>(
     'simkl' + id,
     '/anime/episodes/',
-    database?.ids.simkl,
+    database?.ids?.simkl,
     idMal,
-    rawLinks.length > 0,
+    true,
+    id !== undefined && rawLinks.length > 0,
   );
 
   const _mixer = () => {
@@ -33,10 +34,26 @@ export function useDetailedHook(
     for (let i = 0; i < rawLinks.length; i++) {
       const episode = SimklEpisodeData![i];
       const raw = rawLinks[i];
-      episode.link = raw;
-      items.push(episode);
+      if (episode) {
+        episode.link = raw;
+        episode.sourceName = database!.source.name;
+        items.push(episode);
+      } else {
+        const episode: SimklEpisodes = {
+          episode: i + 1,
+          link: raw,
+          title: 'Episode ' + (i + 1),
+          ids: {simkl_id: 0},
+          aired: true,
+          img: undefined,
+          sourceName: database!.source.name,
+        };
+        items.push(episode);
+      }
     }
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsLoading(false);
+    setError(undefined);
     setFullData(items);
   };
 
@@ -49,23 +66,25 @@ export function useDetailedHook(
       if (timer.current) clearTimeout(timer.current);
       _mixer();
     }
-    return () => {
-      controller.abort();
-    };
   }, [SimklEpisodeData, rawLinks]);
 
   useEffect(() => {
-    if (database && database.source) {
+    return () => controller.abort();
+  }, []);
+  useEffect(() => {
+    if (database && database.source && fullData.length === 0) {
       effect();
     }
-  }, [database]);
+  }, [database, fullData]);
 
   const effect = () => {
     findTitles();
-    timer.current = setTimeout(() => {
-      if (rawLinks.length === 0)
-        setError('Waited 12 seconds but did not obtain any results');
-    }, 12000);
+    // timer.current = setTimeout(() => {
+    //   if (rawLinks.length === 0 && fullData.length === 0) {
+    //     console.log(rawLinks.length, fullData.length);
+    //     setError('Waited 12 seconds but did not obtain any results');
+    //   }
+    // }, 12000);
   };
 
   if (!database || !database.link) return null;

@@ -2,12 +2,18 @@ import {TaiyakiUserModel, WatchingStatus} from '../../Models/taiyaki';
 import {TrackerBase} from './Trackers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  AnilistMediaListEntry,
   AnilistUpdateMediaGraph,
   AnilistViewerGraph,
   AnilistViewerModel,
 } from '../../Models/Anilist';
 import {useUserProfiles} from '../../Stores';
-import {MapWatchingStatusToAnilist} from '../../Util';
+import {
+  dateNumToString,
+  MapWatchingStatusToAnilist,
+  MapWatchingStatusToNative,
+} from '../../Util';
+import {StatusInfo} from '../../Views/Components';
 
 export class AnilistBase implements TrackerBase {
   private baseUrl: string = 'https://graphql.anilist.co';
@@ -51,11 +57,10 @@ export class AnilistBase implements TrackerBase {
     id: number,
     episodesWatched: number,
     status: WatchingStatus,
-    startedAt: Date,
-    completedAt: Date,
-    totalEpisodes: number,
-    score: number,
-  ): Promise<void> {
+    score?: number,
+    startedAt?: Date,
+    completedAt?: Date,
+  ): Promise<undefined | StatusInfo> {
     const aniAuth = useUserProfiles
       .getState()
       .profiles.find((i) => i.source === 'Anilist');
@@ -69,25 +74,43 @@ export class AnilistBase implements TrackerBase {
           year: 'numeric',
         })
         .split('/');
-      return JSON.stringify({month: date[0], day: date[1], year: date[2]});
+
+      return JSON.stringify({
+        month: Number(date[0]),
+        day: Number(date[1]),
+        year: Number(date[2]),
+      }).replace(/"([^"]+)":/g, '$1:');
     };
     const mediaGraph = AnilistUpdateMediaGraph(
       id,
-      score,
       episodesWatched,
-      dateToFuzzy(startedAt),
-      dateToFuzzy(completedAt),
       statusToAni,
+      score,
+      startedAt ? dateToFuzzy(startedAt) : undefined,
+      completedAt ? dateToFuzzy(completedAt) : undefined,
     );
 
     const headers = {
       Authorization: 'Bearer ' + aniAuth.bearerToken,
       'Content-Type': 'application/json',
     };
-    await fetch(this.baseUrl, {
+    const response = await fetch(this.baseUrl, {
       headers,
       body: JSON.stringify({query: mediaGraph}),
       method: 'POST',
     });
+    const json = (await response.json()) as {
+      data: {SaveMediaListEntry: AnilistMediaListEntry};
+    };
+    const statusInfo: StatusInfo = {
+      progress: json.data.SaveMediaListEntry.progress,
+      ended: dateNumToString(json.data.SaveMediaListEntry.completedAt),
+      score: json.data.SaveMediaListEntry.score * 10,
+      started: dateNumToString(json.data.SaveMediaListEntry.startedAt),
+      status: MapWatchingStatusToNative.get(
+        json.data.SaveMediaListEntry.status,
+      ),
+    };
+    return statusInfo;
   }
 }

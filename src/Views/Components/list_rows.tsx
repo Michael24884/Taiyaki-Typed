@@ -5,8 +5,9 @@ import {TouchableOpacity} from 'react-native-gesture-handler';
 import {ThemedSurface} from '.';
 import {MyQueueModel} from '../../Models/taiyaki';
 import {useTheme} from '../../Stores';
-import {ThemedText} from './base';
+import {ThemedButton, ThemedCard, ThemedText} from './base';
 import DangoImage from './image';
+import ProgressBar from 'react-native-progress/Bar';
 
 const {height, width} = Dimensions.get('window');
 
@@ -14,17 +15,17 @@ interface ListRowProps {
   image?: string;
   title: string;
   onPress?: () => void;
+  bottomComponent?: JSX.Element;
 }
 
 export const ListRow: FC<ListRowProps> = (props) => {
-  const {image, title, onPress} = props;
+  const {image, title, onPress, bottomComponent} = props;
   const theme = useTheme((_) => _.theme);
   return (
     <TouchableOpacity disabled={!onPress} onPress={onPress}>
       <View
         style={[styles.listRow.shadowView, {marginHorizontal: width * 0.0055}]}>
-        <ThemedSurface
-          style={[styles.listRow.view, {backgroundColor: theme.colors.card}]}>
+        <ThemedSurface style={[styles.listRow.view]}>
           {image ? (
             <DangoImage url={image} style={styles.listRow.image} />
           ) : (
@@ -35,6 +36,7 @@ export const ListRow: FC<ListRowProps> = (props) => {
           )}
           <View style={styles.listRow.textView}>
             <ThemedText style={styles.listRow.title}>{title}</ThemedText>
+            {bottomComponent}
           </View>
         </ThemedSurface>
       </View>
@@ -50,56 +52,105 @@ export const EpisodeSliders: FC<{
   const theme = useTheme((_) => _.theme);
   return (
     <TouchableOpacity onPress={onPress}>
-      <ThemedSurface
-        style={{
-          flexDirection: 'row',
-          paddingRight: 8,
-          marginVertical: 6,
-          height: height * 0.12,
-          marginHorizontal: 8,
-          flex: 1,
-          ...Platform.select({android: {elevation: 3}}),
-          backgroundColor: theme.colors.card,
-        }}>
+      <ThemedCard>
         <View
           style={{
             flexDirection: 'row',
-            flexShrink: 0.8,
+            height: height * 0.12,
+            marginHorizontal: 8,
+            ...Platform.select({android: {elevation: 3}}),
+            backgroundColor: theme.colors.backgroundColor,
           }}>
-          <Image
-            source={
-              item.episode.img !== null
-                ? {uri: item.episode.img}
-                : require('../../assets/images/icon_round.png')
-            }
-            style={[queueStyle.queueItemImage, {height: '100%', width: '45%'}]}
-          />
-
           <View
             style={{
-              flexDirection: 'column',
-              flexShrink: 1,
-              width: '55%',
-              paddingVertical: 6,
+              flexDirection: 'row',
             }}>
-            <ThemedText
+            <Image
+              source={
+                item.episode.img !== null
+                  ? {uri: item.episode.img}
+                  : require('../../assets/images/icon_round.png')
+              }
               style={[
-                queueStyle.queueItemNumber,
-                {color: theme.colors.primary},
-              ]}>
-              Episode {item.episode.episode}
-            </ThemedText>
-            <ThemedText style={queueStyle.queueItemTitle}>
-              {item.episode.title ?? '???'}
-            </ThemedText>
+                queueStyle.queueItemImage,
+                {height: '100%', width: '45%'},
+              ]}
+            />
+
+            <View
+              style={{
+                flexDirection: 'column',
+                flexShrink: 0.8,
+                width: '55%',
+                paddingVertical: 6,
+              }}>
+              <ThemedText
+                style={[
+                  queueStyle.queueItemNumber,
+                  {color: theme.colors.accent},
+                ]}>
+                Episode {item.episode.episode}
+              </ThemedText>
+              <ThemedText
+                numberOfLines={3}
+                shouldShrink
+                style={queueStyle.queueItemTitle}>
+                {item.episode.title ?? '???'}
+              </ThemedText>
+            </View>
           </View>
         </View>
-      </ThemedSurface>
+      </ThemedCard>
     </TouchableOpacity>
   );
 };
 
+export const ContinueWatchingTile: FC<{
+  title: string;
+  progress: number;
+  onPress: () => void;
+  image?: string;
+}> = (props) => {
+  const {title, image, progress, onPress} = props;
+  const theme = useTheme((_) => _.theme);
+  return (
+    <>
+      <ListRow
+        title={title}
+        image={image}
+        bottomComponent={
+          <View style={styles.continueTile.view}>
+            <ThemedText
+              style={[styles.continueTile.text, {color: theme.colors.accent}]}>
+              {progress.toFixed(2)} % Completed
+            </ThemedText>
+            <ProgressBar
+              color={theme.colors.accent}
+              width={width * 0.64}
+              progress={progress}
+              useNativeDriver
+            />
+          </View>
+        }
+      />
+      <ThemedButton title={'Continue Watching'} onPress={onPress} />
+    </>
+  );
+};
+
 const styles = {
+  continueTile: StyleSheet.create({
+    view: {
+      width: '100%',
+      paddingBottom: 5,
+    },
+    text: {
+      fontSize: 14,
+      fontWeight: '400',
+      marginBottom: 5,
+      alignSelf: 'flex-end',
+    },
+  }),
   listRow: StyleSheet.create({
     shadowView: {
       ...Platform.select({
@@ -124,9 +175,10 @@ const styles = {
       width: '28%',
     },
     textView: {
-      paddingTop: height * 0.005,
-      paddingHorizontal: width * 0.01,
+      paddingVertical: height * 0.005,
+      paddingHorizontal: width * 0.02,
       flexShrink: 0.9,
+      justifyContent: 'space-between',
     },
     title: {
       fontSize: 15,
@@ -169,13 +221,15 @@ const queueStyle = StyleSheet.create({
   },
   queueItemImage: {
     marginRight: 5,
+    marginLeft: -10,
   },
   queueItemTitle: {
-    fontSize: 18,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '400',
   },
   queueItemNumber: {
     fontSize: 15,
+    marginBottom: 4,
   },
   rowBack: {
     alignItems: 'center',

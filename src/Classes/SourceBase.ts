@@ -20,8 +20,13 @@
 // import { AniWatch } from "./DyamicSources/aniwatch";
 
 import qs from 'qs';
-import {TaiyakiArchiveModel, TaiyakiScrapedTitleModel} from '../Models/taiyaki';
+import {
+  EmbededResolvedModel,
+  TaiyakiArchiveModel,
+  TaiyakiScrapedTitleModel,
+} from '../Models/taiyaki';
 import cheerio from 'react-native-cheerio';
+import {VidstreamingHost, BP, Kwik, Mp4Upload, Cloud9, Xstream} from './Hosts';
 
 // type SourceBaseConfig = {
 // 	source: TaiyakiArchiveModel;
@@ -75,12 +80,88 @@ export class SourceBase {
     //   } else throw new Error('User is not signed in to service');
     // } else {
     const func = new Function(this.source.scrapeEpisodes);
-	const eps: string[] = await func.call(null).call(null, link, cheerio);
+    const eps: string[] = await func.call(null).call(null, link, cheerio);
     return eps;
     //}
     //const func = new Function(this.source.scrapeEpisodes);
   }
+
+  async scrapeLinks(
+    episodeLink: string,
+  ): Promise<{link: string; server: string}[]> {
+    // if (this.source.hasOptions && this.source.requiredOptions?.id) {
+    //   const dill = await AsyncStorage.getItem(this.source.requiredOptions.id);
+    //   if (dill) {
+    //     const json = JSON.parse(dill) as DynamicUserData;
+    //     const aniWatch = new AniWatch();
+    //     const links = await aniWatch.scrapeLinks(episodeLink, json);
+    //     // const links: { link: string; server: string }[] = await func
+    //     // .call(null)
+    //     // .call(null, episodeLink, json);
+    //     return links.filter((i) => i);
+    //     //If it fails here but links is showing, you're probably not returning an array. Wrap it between a [] even if its' only one link
+    //   } else throw new Error('User is not signed in to service');
+    // } else {
+    const func = new Function(this.source.scrapeLinks);
+    const links: {link: string; server: string}[] = await func
+      .call(null)
+      .call(null, episodeLink, cheerio);
+    console.log('the available links', links);
+    //If it fails here but links is showing, you're probably not returning an array. Wrap it between a [] even if its' only one link
+    return links.filter((i) => i);
+  }
+
+  async scrapeEmbedLinks(data: {
+    link: string;
+    server: string;
+  }): Promise<EmbededResolvedModel[]> {
+    const qualityString = data.server.match(RegExp(/([0-9]+)-(\w+)/));
+
+    if (qualityString) {
+      const servermatch = qualityString[2];
+      switch (servermatch) {
+        case 'kwik':
+          return await new Kwik().grabAvailableHosts(data.link);
+        case 'animeowl':
+          return [{link: data.link, quality: qualityString[1]}];
+      }
+    }
+    //TODO: Bump from switch to maps
+    switch (data.server.toLowerCase()) {
+      case 'multi quality':
+        return await new VidstreamingHost().grabAvailableHosts(data.link);
+      case 'cloud9':
+        return await new Cloud9().grabAvailableHosts(data.link);
+      case 'xstreamcdn':
+        return await new Xstream().grabAvailableHosts(data.link);
+      case 'mp4upload':
+        return await new Mp4Upload().grabAvailableHosts(data.link);
+
+      case 'bp':
+        return await new BP().grabAvailableHosts(data.link);
+
+      case 'okru':
+        throw '';
+      // case 'ld':
+      // case 'sd':
+      // case 'hd':
+      // case 'fullhd':
+      //   return await new AniWatch().buildWatchableLinks({
+      //     link: data.link,
+      //     quality: data.server.toLowerCase(),
+      //   });
+      case 'custom':
+        return [{link: data.link, quality: data.server}];
+
+      default:
+        throw new Error(
+          `The server name: ${data.server} link: ${data.link} has not been created yet for Taiyaki`,
+        );
+    }
+  }
 }
+
+//WARNING: ARCHIVED -> MAY BE REMOVED IN THE NEAR FUTURE
 
 // export class SourceBase {
 // 	source: TaiyakiArchiveModel;

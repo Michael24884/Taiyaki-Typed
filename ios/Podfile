@@ -8,8 +8,6 @@ target 'Taiyaki_Typed' do
 
   use_react_native!(:path => config["reactNativePath"])
 
-  pod 'react-native-orientation', :path => '../node_modules/react-native-orientation'
-
   target 'Taiyaki_TypedTests' do
     inherit! :complete
     # Pods for testing

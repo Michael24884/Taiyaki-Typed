@@ -18,6 +18,24 @@ export const timeUntil = (seconds: number): string => {
   //   return dDisplay + hDisplay + mDisplay;
 };
 
+export function shuffleArray(array: any[]) {
+  for (var i = array.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = array[i];
+    array[i] = array[j];
+    array[j] = temp;
+  }
+}
+
+export const minutesToHours = new Map<number, string>([
+  [60, 'Every 1 hour'],
+  [120, 'Every 2 hours'],
+  [360, 'Every 6 hours'],
+  [720, 'Every 12 hours'],
+  [1440, 'Once a day'],
+  [10080, 'Once a week'],
+]);
+
 export const dateNumToString = (aniDate: AnilistDates): string => {
   const {day, year, month} = aniDate;
   if (!day || !year || !month) return '??-?-????';
@@ -38,11 +56,13 @@ export const dateNumToString = (aniDate: AnilistDates): string => {
 
 export function simklThumbnails(
   img?: string,
-  format: 'poster' | 'episode' = 'poster',
+  format: 'poster' | 'episode' | 'fanart' = 'poster',
 ): string | undefined {
-  if (img === 'null') return undefined;
+  if (!img || img === 'null') return undefined;
   if (format === 'poster')
     return 'https://simkl.net/posters/' + img + '_ca.jpg';
+  else if (format === 'fanart')
+    return 'https://simkl.net/fanart/' + img + '_mobile.jpg';
   else return 'https://simkl.net/episodes/' + img + '_w.jpg';
 }
 

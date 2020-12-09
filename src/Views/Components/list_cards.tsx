@@ -1,5 +1,5 @@
 import {useNavigation} from '@react-navigation/native';
-import React, {FC, useState} from 'react';
+import React, {FC, memo, useState} from 'react';
 import {
   Dimensions,
   Image,
@@ -16,7 +16,7 @@ import {
 } from '../../Models/Anilist';
 import {SimklEpisodes} from '../../Models/SIMKL';
 import {DetailedDatabaseModel, MyQueueModel} from '../../Models/taiyaki';
-import {useTheme} from '../../Stores';
+import {useSettingsStore, useTheme} from '../../Stores';
 import {useQueueStore} from '../../Stores/queue';
 import {TaiyakiParsedText, ThemedCard, ThemedText} from './base';
 import DangoImage from './image';
@@ -126,22 +126,25 @@ export const RecCards: FC<{items: AnilistRecommendationPageEdgeModel}> = (
   );
 };
 
-export const EpisodeTiles: FC<{
+const _EpisodeTiles: FC<{
   episode: SimklEpisodes;
+  onPlay: () => void;
+  title: string;
+  counter: number;
   detail: DetailedDatabaseModel;
+  currentEpisode: number;
 }> = (props) => {
-  const {episode, detail} = props;
-  const {title, lastWatching} = detail;
-  const [hidden, setHidden] = useState<boolean>(
-    (lastWatching?.data?.episode ?? 1) < episode.episode,
-  );
+  const {episode, onPlay, detail, currentEpisode} = props;
+  const {title} = detail;
+  const isBlurred = useSettingsStore((_) => _.settings.general.blurSpoilers);
+
+  const [hidden, setHidden] = useState<boolean>(isBlurred);
   const [descExpanded, setExpanded] = useState<boolean>(false);
   const theme = useTheme((_) => _.theme);
 
   const {addToQueue} = useQueueStore((_) => _);
 
   const queue = useQueueStore((_) => _.myQueue);
-
   const inList: boolean =
     queue[title] &&
     queue[title].find((i) => i.episode.episode === episode.episode) !==
@@ -149,7 +152,7 @@ export const EpisodeTiles: FC<{
 
   return (
     <ThemedCard style={styles.tiles.view}>
-      {hidden ? (
+      {hidden && currentEpisode < episode.episode ? (
         <TouchableOpacity
           onLongPress={() => {
             LayoutAnimation.configureNext(
@@ -190,14 +193,12 @@ export const EpisodeTiles: FC<{
         </TouchableOpacity>
       ) : (
         <View>
-          {episode.img ? (
-            <DangoImage url={episode.img} style={styles.tiles.image} />
-          ) : (
-            <Image
-              source={require('../../assets/images/icon_round.png')}
+          {
+            <DangoImage
+              url={episode.img ? episode.img : detail.coverImage}
               style={styles.tiles.image}
             />
-          )}
+          }
           <View style={styles.tiles.textView}>
             <ThemedText
               style={[
@@ -207,7 +208,13 @@ export const EpisodeTiles: FC<{
               Episode {episode.episode}
             </ThemedText>
             <ThemedText
-              numberOfLines={descExpanded ? undefined : 1}
+              numberOfLines={
+                !episode.description ||
+                descExpanded ||
+                (episode.description?.length ?? 0) < 650
+                  ? undefined
+                  : 1
+              }
               style={[
                 styles.tiles.episodeTitle,
                 {color: theme.colors.primary},
@@ -229,7 +236,7 @@ export const EpisodeTiles: FC<{
                 padding: 8,
                 justifyContent: 'space-between',
                 alignItems: 'flex-end',
-                backgroundColor: theme.colors.card,
+
                 flex: 1,
               }}>
               {episode.description?.length ?? 0 > 650 ? (
@@ -248,7 +255,7 @@ export const EpisodeTiles: FC<{
               )}
               <View
                 style={{justifyContent: 'space-between', flexDirection: 'row'}}>
-                <FlavoredButtons name={'play'} onPress={() => {}} />
+                <FlavoredButtons name={'play'} onPress={onPlay} />
                 <FlavoredButtons
                   name={inList ? 'playlist-remove' : 'playlist-plus'}
                   onPress={() => {
@@ -267,6 +274,8 @@ export const EpisodeTiles: FC<{
     </ThemedCard>
   );
 };
+
+export const EpisodeTiles = memo(_EpisodeTiles);
 
 const styles = {
   tiles: StyleSheet.create({

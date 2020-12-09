@@ -12,6 +12,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import {ThemedText} from './base';
 
 interface FastImageProps {
   url: string;
@@ -50,12 +51,14 @@ const DangoImage: FC<FastImageProps> = (props) => {
 };
 
 interface AvatarProps {
-  url?: string;
+  url?: string | number;
   size?: number;
+  borderWidth?: number;
+  borderColor?: string;
 }
 
 export const Avatars: FC<AvatarProps> = (props): JSX.Element => {
-  const {url, size} = props;
+  const {url, size, borderWidth, borderColor} = props;
   return (
     <View
       style={{
@@ -63,9 +66,27 @@ export const Avatars: FC<AvatarProps> = (props): JSX.Element => {
         height: size ?? 24,
         width: size ?? 24,
         overflow: 'hidden',
+        borderWidth,
+        borderColor,
       }}>
       {url ? (
-        <DangoImage url={url} style={{height: '100%', width: '100%'}} />
+        typeof url === 'string' && url.startsWith('http') ? (
+          <DangoImage url={url} style={{height: '100%', width: '100%'}} />
+        ) : (
+          <View
+            style={{
+              backgroundColor: 'grey',
+              height: '100%',
+              width: '100%',
+              alignContent: 'center',
+              justifyContent: 'center',
+            }}>
+            <ThemedText
+              style={{textAlign: 'center', fontWeight: '500', fontSize: 15}}>
+              {url.toString()}
+            </ThemedText>
+          </View>
+        )
       ) : (
         <Image
           source={require('../../assets/images/icon_round.png')}
